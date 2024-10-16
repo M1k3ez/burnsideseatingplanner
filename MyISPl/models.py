@@ -1,12 +1,8 @@
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
-from sqlalchemy import (
-    ForeignKey,
-    CheckConstraint,
-    String,
-    Integer,
-)
+from sqlalchemy import ForeignKey, CheckConstraint
+from sqlalchemy.ext.associationproxy import association_proxy
 
 db = SQLAlchemy()
 
@@ -41,17 +37,18 @@ class User(UserMixin, db.Model):
     # EMAIL DOMAIN CONSTRAINT CHECK
     __table_args__ = (
         CheckConstraint(
-            f"email LIKE '%{EMAIL_DOMAIN}'", name='email_domain_check'),
-    )
+            f"email LIKE '%{EMAIL_DOMAIN}'", name='email_domain_check'),)
 
     classes = relationship(
         'Class', back_populates='teacher', cascade='all, delete-orphan')
     notes = relationship(
         'Note', back_populates='teacher', cascade='all, delete-orphan')
     authentication_tokens = relationship(
-        'AuthenticationToken', back_populates='user', cascade='all, delete-orphan')
-    seating_plans = relationship(
-        'SeatingPlan', back_populates='teacher', cascade='all, delete-orphan')
+        'AuthenticationToken', back_populates='user',
+        cascade='all, delete-orphan')
+    user_seating_plans = relationship(
+        'UserSeatingPlan', back_populates='user', cascade='all, delete-orphan')
+    seating_plans = association_proxy('user_seating_plans', 'seating_plan')
 
 
 class AuthenticationToken(db.Model):
@@ -103,10 +100,12 @@ class Classroom(db.Model):
     room_number = db.Column(db.String(), nullable=False)
     block_name = db.Column(db.String(), nullable=False)
     block_label = db.Column(db.String(), nullable=False)
-    seating_plan_id = db.Column(
-        db.Integer, ForeignKey('SEATING_PLAN.seating_plan_id'), nullable=False)
 
-    seating_plan = relationship('SeatingPlan', back_populates='classroom')
+    classroom_seating_plans = relationship(
+        'ClassroomSeatingPlan', back_populates='classroom',
+        cascade='all, delete-orphan')
+    seating_plans = association_proxy(
+        'classroom_seating_plans', 'seating_plan')
 
     # Classroom ID generator (block_label + room_number)
     def __init__(self, **kwargs):
@@ -138,17 +137,21 @@ class SeatingPlan(db.Model):
         db.Integer, primary_key=True, autoincrement=True)
     class_id = db.Column(
         db.Integer, ForeignKey('CLASS.class_id'), nullable=False)
-    user_id = db.Column(db.Integer, ForeignKey('USER.user_id'), nullable=False)
     date_created = db.Column(db.String(), nullable=False)
     layout_data = db.Column(db.Text(), nullable=False)
 
     class_ = relationship('Class', back_populates='seating_plans')
-    teacher = relationship('User', back_populates='seating_plans')
     seat_assignments = relationship(
-        'SeatAssignment', back_populates='seating_plan', 
+        'SeatAssignment', back_populates='seating_plan',
         cascade='all, delete-orphan')
-    classroom = relationship(
-        'Classroom', back_populates='seating_plan', uselist=False)
+    user_seating_plans = relationship(
+        'UserSeatingPlan', back_populates='seating_plan',
+        cascade='all, delete-orphan')
+    users = association_proxy('user_seating_plans', 'user')
+    classroom_seating_plans = relationship(
+        'ClassroomSeatingPlan', back_populates='seating_plan',
+        cascade='all, delete-orphan')
+    classrooms = association_proxy('classroom_seating_plans', 'classroom')
 
 
 class SeatAssignment(db.Model):
@@ -156,18 +159,16 @@ class SeatAssignment(db.Model):
     Join table between SeatingPlan and Student for seat assignments.
     """
     __tablename__ = 'SEAT_ASSIGNMENT'
-
     seating_plan_id = db.Column(
-        db.Integer, ForeignKey('SEATING_PLAN.seating_plan_id'),
-        primary_key=True)
-    seat_number = db.Column(db.Integer, primary_key=True)
+        db.Integer, ForeignKey('SEATING_PLAN.seating_plan_id'), nullable=False)
+    seat_number = db.Column(db.Integer, nullable=False)
     student_id = db.Column(
         db.Integer, ForeignKey('STUDENT.student_id'), nullable=False)
 
     seating_plan = relationship(
-        'SeatingPlan', back_populates='seat_assignments')
+        'SeatingPlan', back_populates='seat_assignments', lazy='subquery')
     student = relationship(
-        'Student', back_populates='seat_assignments')
+        'Student', back_populates='seat_assignments', lazy='subquery')
 
 
 class StudentClass(db.Model):
@@ -175,11 +176,45 @@ class StudentClass(db.Model):
     Join table for Student and Class.
     """
     __tablename__ = 'STUDENTCLASS'
-
     student_id = db.Column(
-        db.Integer, ForeignKey('STUDENT.student_id'), primary_key=True)
+        db.Integer, ForeignKey('STUDENT.student_id'), nullable=False)
     class_id = db.Column(
-        db.Integer, ForeignKey('CLASS.class_id'), primary_key=True)
+        db.Integer, ForeignKey('CLASS.class_id'), nullable=False)
 
-    student = relationship('Student', back_populates='student_classes')
-    class_ = relationship('Class', back_populates='student_classes')
+    student = relationship(
+        'Student', back_populates='student_classes', lazy='subquery')
+    class_ = relationship(
+        'Class', back_populates='student_classes', lazy='subquery')
+
+
+class ClassroomSeatingPlan(db.Model):
+    '''
+    Join table between Classroom and SeatingPlan
+    '''
+    __tablename__ = 'CLASSROOMSEATING_PLAN'
+    classroom_id = db.Column(
+        db.String(), ForeignKey('CLASSROOM.classroom_id'), nullable=False)
+    seating_plan_id = db.Column(
+        db.Integer, ForeignKey('SEATING_PLAN.seating_plan_id'), nullable=False)
+
+    classroom = relationship(
+        'Classroom', back_populates='classroom_seating_plans', lazy='subquery')
+    seating_plan = relationship(
+        'SeatingPlan', back_populates='classroom_seating_plans',
+        lazy='subquery')
+
+
+class UserSeatingPlan(db.Model):
+    '''
+    Join table between User and SeatingPlan
+    '''
+    __tablename__ = 'USERSEATING_PLAN'
+    user_id = db.Column(
+        db.Integer, ForeignKey('USER.user_id'), nullable=False)
+    seating_plan_id = db.Column(
+        db.Integer, ForeignKey('SEATING_PLAN.seating_plan_id'), nullable=False)
+
+    user = relationship(
+        'User', back_populates='user_seating_plans')
+    seating_plan = relationship(
+        'SeatingPlan', back_populates='user_seating_plans')
