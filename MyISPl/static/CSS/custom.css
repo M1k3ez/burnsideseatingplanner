@@ -1,0 +1,84 @@
+/* landing-page styles */
+.seating-landing-page-wrapper {
+     background: white;
+     min-height: 100vh;
+     padding: 0;
+     margin: 0;
+}
+
+ /* Welcome Section */
+.seating-landing-page-welcome-section {
+     padding: 20px 50px;
+}
+
+.seating-landing-page-title {
+     font-size: 2.5rem;
+     font-weight: bold;
+     color: black;
+}
+
+.seating-landing-page-lead {
+     font-size: 1.25rem;
+     color: #555;
+}
+
+/* Override Bootstrap button styles */
+.seating-landing-page-get-started-btn {
+     background-color: white !important; /* Primary blue background */
+     color: black !important;
+     border: 2px solid black !important;
+     padding: 5px 20px !important;
+     font-size: 1.2rem !important;
+     border-radius: 50px !important; /* Pill button style */
+     transition: background-color 0.3s ease, transform 0.2s ease !important;
+     display: inline-block !important;
+     cursor: pointer !important;
+     text-align: center !important;
+     text-decoration: none !important;
+     font-weight: 600 !important;
+}
+ 
+.seating-landing-page-get-started-btn:hover {
+     background-color: black !important;
+     color: white !important;
+     transform: scale(1.05) !important; /* Slight scaling effect */
+     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important; /* Adding shadow effect */
+ }
+ 
+.seating-landing-page-get-started-btn:active {
+     background-color: #004494 !important;
+     transform: scale(0.98) !important;
+     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+ 
+ 
+ /* Cards Wrapper Section */
+.seating-landing-page-cards-wrapper {
+     padding-left: 50px;
+     padding-right: 50px;
+}
+
+ .seating-landing-page-feature-card {
+     background: #e0f0f0;
+     height: 100%;
+     box-shadow: 0 4px 20px rgba(131, 127, 127, 0.1); /* Subtle shadow for distinction */
+     padding: 12px;
+}
+
+ .seating-landing-page-card-body {
+     display: flex;
+     flex-direction: column;
+     justify-content: center;
+     align-items: center;
+}
+
+ .seating-landing-page-card-title {
+     font-size: 1.5rem;
+     font-weight: bold;
+     margin-bottom: 15px;
+}
+
+ .seating-landing-page-card-text {
+     font-size: 1rem;
+     color: #666;
+}

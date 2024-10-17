@@ -95,6 +95,7 @@ class Student(db.Model):
     student_id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(), nullable=False)
     last_name = db.Column(db.String(), nullable=False)
+    gender = db.Column(db.String(), nullable=False)
     photo = db.Column(db.String(), nullable=False)
     SAC_status = db.Column(db.Integer, nullable=False)
     academic_performance = db.Column(db.String(), nullable=False)
