@@ -103,7 +103,9 @@ class Student(db.Model):
 
     # Method to convert SAC status integer to string
     def get_SAC_status(self):
-        """Method to convert SAC status integer to string based on SAC_STATUS."""
+        """
+        Method to convert SAC status integer to string based on SAC_STATUS.
+        """
         return SAC_STATUS.get(self.SAC_status, 'unknown')
 
     # Method to convert academic performance integer to string
@@ -124,7 +126,8 @@ class Class(db.Model):
     class_id = db.Column(db.Integer, primary_key=True)
     class_code = db.Column(db.String(), unique=True, nullable=False)
     class_name = db.Column(db.String(), nullable=False)
-    user_id = db.Column(db.String(), ForeignKey('USER.user_id'), nullable=False)
+    user_id = db.Column(db.String(), ForeignKey('USER.user_id'),
+                        nullable=False)
 
     teacher = relationship('User', back_populates='classes')
     seating_plans = relationship(
@@ -162,7 +165,8 @@ class Note(db.Model):
     note_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     student_id = db.Column(
         db.Integer, ForeignKey('STUDENT.student_id'), nullable=False)
-    user_id = db.Column(db.String(), ForeignKey('USER.user_id'), nullable=False)
+    user_id = db.Column(db.String(), ForeignKey('USER.user_id'),
+                        nullable=False)
     date_created = db.Column(db.String(), nullable=False)
     details = db.Column(db.String(), nullable=False)
 
@@ -199,7 +203,8 @@ class SeatAssignment(db.Model):
     """
     __tablename__ = 'SEAT_ASSIGNMENT'
     seating_plan_id = db.Column(
-        db.Integer, ForeignKey('SEATING_PLAN.seating_plan_id'), primary_key=True, nullable=False)
+        db.Integer, ForeignKey('SEATING_PLAN.seating_plan_id'),
+        primary_key=True, nullable=False)
     seat_number = db.Column(db.Integer, nullable=False)
     student_id = db.Column(
         db.Integer, ForeignKey('STUDENT.student_id'), nullable=False)
@@ -234,7 +239,7 @@ class ClassroomSeatingPlan(db.Model):
     '''
     __tablename__ = 'CLASSROOMSEATING_PLAN'
     classroom_id = db.Column(
-        db.String(), ForeignKey('CLASSROOM.classroom_id'), nullable=False, 
+        db.String(), ForeignKey('CLASSROOM.classroom_id'), nullable=False,
         primary_key=True)
     seating_plan_id = db.Column(
         db.Integer, ForeignKey('SEATING_PLAN.seating_plan_id'),
@@ -256,7 +261,7 @@ class UserSeatingPlan(db.Model):
         db.String(), ForeignKey('USER.user_id'), nullable=False,
         primary_key=True)
     seating_plan_id = db.Column(
-        db.Integer, ForeignKey('SEATING_PLAN.seating_plan_id'), nullable=False, 
+        db.Integer, ForeignKey('SEATING_PLAN.seating_plan_id'), nullable=False,
         primary_key=True)
 
     user = relationship(

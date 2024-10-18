@@ -1,0 +1,39 @@
+/* Custom styles */
+.navbar {
+    background-color: white;
+    height: 3.75em;
+}
+.navbar-brand img {
+    max-width: 5vw;
+    max-height: 3vw;
+}
+.navbar-brand span {
+    font-size: 1.2vw;
+    color: black;
+    font-weight: bold;
+}
+.nav-link {
+    color: black !important;
+}
+.navbar-toggler {
+    border: none;
+    border-color: rgba(0, 0, 0, 0.1);
+    font-size: 1.8em; /* Set hamburger menu size for normal screens */
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .navbar {
+        height: 3em;
+    }
+    .navbar-brand img {
+        max-width: 10vw;
+        max-height: 6vw;
+    }
+    .navbar-brand span {
+        font-size: 3vw;
+    }
+    .navbar-toggler {
+        font-size: 0.7em;
+    }
+}
