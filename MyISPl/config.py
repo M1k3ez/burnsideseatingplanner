@@ -1,4 +1,6 @@
 from dotenv import load_dotenv
+from datetime import timedelta
+import redis  # redis cache
 import os
 
 
@@ -10,3 +12,8 @@ class Config:
         os.path.join(os.path.dirname(__file__), 'data.sqlite3')}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv('SECRET_KEY') or os.random(64)
+    SESSION_TYPE = 'redis'
+    SESSION_REDIS = redis.StrictRedis.from_url('redis://localhost:6379')
+    SESSION_PERMANENT = True
+    PERMANENT_SESSION_LIFETIME = timedelta(seconds=5)
+    SESSION_USE_SIGNER = True

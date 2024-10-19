@@ -24,6 +24,27 @@
         {% endif %}
     {% endwith %}
     {% block content %}{% endblock %}
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- Verification Modal -->
+        <div class="modal fade" id="verificationModal" tabindex="-1" aria-labelledby="verificationModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="verificationForm">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="verificationModalLabel">Session Verification</h5>
+                        </div>
+                        <div class="modal-body">
+                            <p>Please enter your user ID to continue your session.</p>
+                            <input type="text" id="verificationUserId" class="form-control" required>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn seating-landing-page-get-started-btn">Verify</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='JS/session_management.js') }}"></script>
 </body>
 </html>

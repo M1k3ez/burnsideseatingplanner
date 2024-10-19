@@ -1,6 +1,7 @@
 from flask import render_template
 from models import db
 from __init__ import create_app
+from redis_extensions import socketio
 
 
 app = create_app()
@@ -25,4 +26,4 @@ def tos():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    socketio.run(app, debug=True)

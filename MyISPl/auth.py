@@ -2,10 +2,9 @@ import os
 from flask import Blueprint, redirect, url_for, request, flash
 from oauthlib.oauth2 import WebApplicationClient
 import requests
-from flask_login import login_user, logout_user, login_required, current_user
+from flask_login import login_user, logout_user, current_user
 from dotenv import load_dotenv
 from user import User
-from models import User as UserModel
 
 # Create auth Blueprint
 auth_bp = Blueprint('auth', __name__)
@@ -68,7 +67,6 @@ def login():
     )
     print("Prepared request URI for OAuth.")
     return redirect(request_uri)
-
 
 
 @auth_bp.route("/auth/login/callback")
@@ -135,14 +133,7 @@ def callback():
     return redirect(url_for("landing_page"))
 
 
-@auth_bp.route("/dashboard")
-@login_required
-def dashboard():
-    return f"Welcome to your dashboard, {current_user.first_name} {current_user.last_name}"
-
-
 @auth_bp.route("/logout")
-@login_required
 def logout():
     logout_user()
     return redirect(url_for("landing_page"))
