@@ -3,7 +3,7 @@ from flask_login import LoginManager
 from models import db
 from config import Config
 from auth import auth_bp
-from user_testing import User
+from user import User
 import os
 
 

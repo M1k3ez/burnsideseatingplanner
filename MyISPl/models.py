@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
 from sqlalchemy import ForeignKey, CheckConstraint
 from sqlalchemy.ext.associationproxy import association_proxy
-
+from datetime import datetime, timezone
 db = SQLAlchemy()
 
 # Set user roles and expiry status as global constants
@@ -49,7 +49,8 @@ class User(UserMixin, db.Model):
     last_name = db.Column(db.String(), nullable=False)
     role = db.Column(db.Integer, nullable=False)
     email = db.Column(db.String(), unique=True, nullable=False)
-    date_joined = db.Column(db.String(), nullable=False)
+    date_joined = db.Column(db.DateTime(), nullable=False,
+                            default=datetime.now(timezone.utc))
 
     # EMAIL DOMAIN CONSTRAINT CHECK
     __table_args__ = (
@@ -62,6 +63,9 @@ class User(UserMixin, db.Model):
             if self.role == role_value:
                 return role_name
         return "Unknown"
+
+    def get_id(self):
+        return self.provider_id
 
     classes = relationship(
         'Class', back_populates='teacher', cascade='all, delete-orphan')
@@ -167,7 +171,7 @@ class Note(db.Model):
         db.Integer, ForeignKey('STUDENT.student_id'), nullable=False)
     user_id = db.Column(db.String(), ForeignKey('USER.user_id'),
                         nullable=False)
-    date_created = db.Column(db.String(), nullable=False)
+    date_created = db.Column(db.DateTime, nullable=False, default=datetime.now(timezone.utc))
     details = db.Column(db.String(), nullable=False)
 
     student = relationship('Student', back_populates='notes')
@@ -180,7 +184,7 @@ class SeatingPlan(db.Model):
         db.Integer, primary_key=True, autoincrement=True)
     class_id = db.Column(
         db.Integer, ForeignKey('CLASS.class_id'), nullable=False)
-    date_created = db.Column(db.String(), nullable=False)
+    date_created = db.Column(db.DateTime(), nullable=False, default=datetime.now(timezone.utc))
     layout_data = db.Column(db.Text(), nullable=False)
 
     class_ = relationship('Class', back_populates='seating_plans')
