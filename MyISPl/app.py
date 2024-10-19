@@ -1,30 +1,9 @@
-from flask import Flask, render_template
-from flask_login import LoginManager
+from flask import render_template
 from models import db
-from config import Config
-from auth import auth_bp
-from user import User
-import os
+from __init__ import create_app
 
 
-app = Flask(__name__)
-app.config.from_object(Config)
-db.init_app(app)
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'  # disable enforce https
-
-
-# Initialize Flask-Login
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = "auth.login"
-
-# Import and register the auth blueprint from auth.py
-app.register_blueprint(auth_bp)
-
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.get(user_id)
+app = create_app()
 
 
 # Main routes

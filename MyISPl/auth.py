@@ -5,6 +5,7 @@ import requests
 from flask_login import login_user, logout_user, login_required, current_user
 from dotenv import load_dotenv
 from user import User
+from models import User as UserModel
 
 # Create auth Blueprint
 auth_bp = Blueprint('auth', __name__)
@@ -28,19 +29,46 @@ def get_google_provider_cfg():
     return requests.get(GOOGLE_DISCOVERY_URL).json()
 
 
-# Routes for Google OAuth2
 @auth_bp.route("/login")
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('auth.dashboard'))
+        print(f"current_user: {current_user}, type: {type(current_user)}")
+        print(f"current_user.__dict__: {current_user.__dict__}")
+        user_role = current_user.get_role()
+        print(f"Current user role is: {user_role}")
+        if user_role == "Teacher":
+            return redirect(url_for('teacher.dashboard'))
+        elif user_role == "Network Manager":
+            return redirect(url_for('networkmanager.dashboard'))
+        elif user_role == "Administrator":
+            return redirect(url_for('administrator.dashboard'))
+        elif user_role == "Staff":
+            return redirect(url_for('staff.dashboard'))
+        else:
+            # Handle unknown roles
+            print(f"Unauthorized role detected: {user_role}")
+            flash("Unauthorized role.")
+            # Redirect to a page that doesn't cause a loop
+            return redirect(url_for("landing_page"))
+    # Proceed with OAuth flow for unauthenticated users
+    print("User is not authenticated. Starting OAuth flow.")
     google_provider_cfg = get_google_provider_cfg()
-    authorization_endpoint = google_provider_cfg["authorization_endpoint"]
+    if not google_provider_cfg:
+        print("Failed to fetch Google provider configuration.")
+        return "Failed to fetch Google provider configuration.", 500
+    print("Fetched Google provider configuration.")
+    authorization_endpoint = google_provider_cfg.get("authorization_endpoint")
+    if not authorization_endpoint:
+        print("Authorization endpoint not found in Google provider configuration.")
+        return "Authorization endpoint not found.", 500
     request_uri = client.prepare_request_uri(
         authorization_endpoint,
         redirect_uri=url_for("auth.callback", _external=True),
         scope=GOOGLE_SCOPES_LIST,
     )
+    print("Prepared request URI for OAuth.")
     return redirect(request_uri)
+
 
 
 @auth_bp.route("/auth/login/callback")
@@ -92,10 +120,19 @@ def callback():
                 user = User.get(user_google_id)
             login_user(user)
             print(f"User {user.email} logged in successfully.")
-            return redirect(url_for("auth.dashboard"))
+    user_role = user.get_role()
+    print(f"User role is: {user_role} (role value: {user.role})")
+    if user_role == "Teacher":
+        return redirect(url_for('teacher.dashboard'))
+    elif user_role == "Network Manager":
+        return redirect(url_for('networkmanager.dashboard'))
+    elif user_role == "Administrator":
+        return redirect(url_for('administrator.dashboard'))
+    elif user_role == "Staff":
+        return redirect(url_for('staff.dashboard'))
     else:
-        flash("Invalid email, please login again.")
-    return redirect(url_for("auth.login"))
+        print(f'{"Invalid email, please login again."}')
+    return redirect(url_for("landing_page"))
 
 
 @auth_bp.route("/dashboard")

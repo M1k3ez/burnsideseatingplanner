@@ -1,0 +1,8 @@
+{% extends "template.html" %}
+
+{% block content %}
+<h1>{{ user.get_role() }} Dashboard</h1>
+<p>Welcome, {{ user.first_name }} {{ user.last_name }}</p>
+<p>Your email: {{ user.email }}</p>
+<p>Role: {{ user.get_role() }}</p>
+{% endblock %}

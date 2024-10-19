@@ -4,12 +4,13 @@ from models import db, User as UserModel
 
 
 class User(UserMixin):
-    def __init__(self, user_id, provider_id, first_name, last_name, email):
+    def __init__(self, user_id, provider_id, role, first_name, last_name, email):
         self.user_id = user_id
         self.provider_id = provider_id
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
+        self.role = role
 
     @staticmethod
     def split_email(user_email):
@@ -47,7 +48,7 @@ class User(UserMixin):
             first_name=first_name,
             last_name=last_name,
             email=email,
-            role=4,  # Default role as 'Staff'
+            role=3,  # Default role as 'Staff'
             date_joined=datetime.now(timezone.utc)
         )
         db.session.add(new_user)

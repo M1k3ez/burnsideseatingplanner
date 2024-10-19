@@ -9,10 +9,9 @@ db = SQLAlchemy()
 # Set user roles and expiry status as global constants
 USER_ROLE = {
     "Teacher": 0,
-    "HOF": 1,
-    "Network Manager": 2,
-    "Administrator": 3,
-    "Staff": 4,
+    "Network Manager": 1,
+    "Administrator": 2,
+    "Staff": 3,
 }
 
 EXPIRY_STATUS = {
