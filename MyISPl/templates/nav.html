@@ -7,45 +7,74 @@
     <link rel="stylesheet" href="/static/css/navcustom.css">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg shadow">
-        <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="/">
-                <img src="/static/images/logo.png" alt="Logo">
-                <span class="ms-2">My Interactive Seating Planner</span>
+<nav class="navbar navbar-expand-lg navbar-light bg-white">
+  <div class="container-fluid">
+    <a class="navbar-brand d-flex align-items-center" href="/">
+      <img src="/static/images/logo.png" alt="Logo">
+      <span class="ms-2">My Interactive Seating Planner</span>
+    </a>
+    <button class="navbar-toggler" type="button" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <a class="nav-link active" aria-current="page" href="/">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('aboutus') }}">About Us</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('functionalities') }}">Functionalities</a>
+        </li>
+        {% if current_user.is_authenticated %}
+          <li class="nav-item">
+            {% if current_user.get_role() == "Teacher" %}
+              <a class="nav-link" href="{{ url_for('teacher.dashboard') }}">Teacher Dashboard</a>
+            {% elif current_user.get_role() == "Administrator" %}
+              <a class="nav-link" href="{{ url_for('administrator.dashboard') }}">Admin Dashboard</a>
+            {% elif current_user.get_role() == "Network Manager" %}
+              <a class="nav-link" href="{{ url_for('networkmanager.dashboard') }}">Network Manager Dashboard</a>
+            {% else %}
+              <a class="nav-link" href="{{ url_for('staff.dashboard') }}">Staff Dashboard</a>
+            {% endif %}
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button">
+              {{ current_user.first_name }} {{ current_user.last_name }}
             </a>
-
-            {# Hamburger menu for mobile screens #}
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <!-- Navigation links -->
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="/">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#dashboard">Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#Timetable">Timetable</a>
-                    </li>
-                    {# Show Logout link if user is authenticated, else show Login link #}
-                    {% if current_user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-    </nav>
-    {# Bootstrap link #}
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+              <li><a class="dropdown-item" href="#" id="logoutLink">Logout</a></li>
+            </ul>
+          </li>
+        {% else %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+<!-- Logout Confirmation Modal -->
+<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="logoutModalLabel">Confirm Logout</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to logout?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <a href="{{ url_for('auth.logout') }}" class="btn btn-primary" id="confirmLogout">Logout</a>
+      </div>
+    </div>
+  </div>
+</div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='JS/navbar.js') }}"></script>
 </body>
 </html>

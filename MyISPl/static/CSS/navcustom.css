@@ -1,7 +1,8 @@
 /* Custom styles */
 .navbar {
     background-color: white;
-    height: 3.75em;
+    min-height: 3.75em;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 .navbar-brand img {
     max-width: 5vw;
@@ -18,14 +19,11 @@
 .navbar-toggler {
     border: none;
     border-color: rgba(0, 0, 0, 0.1);
-    font-size: 1.8em; /* Set hamburger menu size for normal screens */
+    font-size: 1.8em;
 }
 
 /* Mobile adjustments */
 @media (max-width: 768px) {
-    .navbar {
-        height: 3em;
-    }
     .navbar-brand img {
         max-width: 10vw;
         max-height: 6vw;
@@ -36,4 +34,35 @@
     .navbar-toggler {
         font-size: 0.7em;
     }
+    .navbar-collapse {
+        background-color: white;
+        padding: 1em;
+    }
+}
+
+/* Dropdown styles */
+.dropdown-menu {
+    border: 1px solid rgba(0,0,0,.15);
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,.175);
+}
+
+/* Ensure dropdown is visible on mobile */
+@media (max-width: 768px) {
+    .navbar-nav .dropdown-menu {
+        position: static;
+        float: none;
+    }
+}
+
+/* Modal styles */
+.modal-content {
+    border-radius: 0.5rem;
+}
+
+.modal-header {
+    border-bottom: none;
+}
+
+.modal-footer {
+    border-top: none;
 }
