@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, redirect, url_for, request, flash
+from flask import Blueprint, redirect, url_for, request, flash, render_template
 from oauthlib.oauth2 import WebApplicationClient
 import requests
 from flask_login import login_user, logout_user, current_user
@@ -138,6 +138,16 @@ def callback():
     else:
         print(f'{"Invalid email, please login again."}')
     return redirect(url_for("landing_page"))
+
+
+@auth_bp.route('/functionalities')
+def functionalities():
+    return render_template('functionalities.html')
+
+
+@auth_bp.route('/aboutus')
+def aboutus():
+    return render_template('aboutus.html')
 
 
 @auth_bp.route("/logout")

@@ -19,11 +19,6 @@ EXPIRY_STATUS = {
     "Valid": 1
 }
 
-SAC_STATUS = {
-    0: "Yes",
-    1: "No"
-}
-
 LANGUAGE_PROFICIENCY = {
     "GOOD ENOUGH FOR COMMUNICATION AND LEARNING": 0,
     "NOT GOOD ENOUGH FOR COMMUNICATION AND LEARNING": 1
@@ -70,27 +65,9 @@ class User(UserMixin, db.Model):
         'Class', back_populates='teacher', cascade='all, delete-orphan')
     notes = relationship(
         'Note', back_populates='teacher', cascade='all, delete-orphan')
-    authentication_tokens = relationship(
-        'AuthenticationToken', back_populates='user',
-        cascade='all, delete-orphan')
     user_seating_plans = relationship(
         'UserSeatingPlan', back_populates='user', cascade='all, delete-orphan')
     seating_plans = association_proxy('user_seating_plans', 'seating_plan')
-
-
-class AuthenticationToken(db.Model):
-    __tablename__ = 'AUTHENTICATION_TOKEN'
-    token_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.String, ForeignKey('USER.user_id'), nullable=False)
-    token = db.Column(db.String(), nullable=False)
-    expiry_status = db.Column(db.Integer, nullable=False)
-
-    def get_expiry_status(self):
-        '''Convert global constant to String based on current mapping'''
-        for status_name, status_value in EXPIRY_STATUS.items():
-            if self.expiry_status == status_value:
-                return status_name
-    user = relationship('User', back_populates='authentication_tokens')
 
 
 class Student(db.Model):
@@ -100,20 +77,22 @@ class Student(db.Model):
     last_name = db.Column(db.String(), nullable=False)
     gender = db.Column(db.String(), nullable=False)
     photo = db.Column(db.String(), nullable=False)
-    SAC_status = db.Column(db.Integer, nullable=False)
-    academic_performance = db.Column(db.String(), nullable=False)
-    language_proficiency = db.Column(db.String(), nullable=False)
+    academic_performance = db.Column(db.Integer, nullable=False)
+    language_proficiency = db.Column(db.Integer, nullable=False)
 
-    # Method to convert SAC status integer to string
-    def get_SAC_status(self):
-        """
-        Method to convert SAC status integer to string based on SAC_STATUS.
-        """
-        return SAC_STATUS.get(self.SAC_status, 'unknown')
-
-    # Method to convert academic performance integer to string
     def get_academic_performance(self):
-        return ACADEMIC_PERFORMANCE.get(self.academic_performance, "Unknown")
+        """Convert academic performance integer to string based on ACADEMIC_PERFORMANCE mapping."""
+        for academic_performance_name, academic_performance_value in ACADEMIC_PERFORMANCE.items():
+            if self.academic_performance == academic_performance_value:
+                return academic_performance_name
+        return "Unknown"
+
+    def get_language_proficiency(self):
+        """Convert language proficiency integer to string based on LANGUAGE_PROFICIENCY mapping."""
+        for language_proficiency_name, language_proficiency_value in LANGUAGE_PROFICIENCY.items():
+            if self.language_proficiency == language_proficiency_value:
+                return language_proficiency_name
+        return "Unknown"
 
     student_classes = relationship(
         'StudentClass', back_populates='student', cascade='all, delete-orphan')

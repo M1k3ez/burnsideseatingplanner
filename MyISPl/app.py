@@ -23,16 +23,6 @@ def tos():
     return render_template('terms_of_service.html')
 
 
-@app.route('/functionalities')
-def functionalities():
-    return render_template('functionalities.html')
-
-
-@app.route('/aboutus')
-def aboutus():
-    return render_template('aboutus.html')
-
-
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

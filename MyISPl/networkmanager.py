@@ -14,8 +14,7 @@ def dashboard():
     # Retrieve the user's details from the database based on provider_id
     user = User.query.filter_by(user_id=current_user.user_id).first()
     if user.role != USER_ROLE["Network Manager"]:
-        flash(
-            "Access denied: You are not authorized to access the Network Manager dashboard.", "error")
+        flash(f"Hi {user.first_name} {user.last_name}, access denied: You are not authorised to access the Network Manager dashboard.", "error")
         return redirect(url_for('landing_page'))  # Redirect to homepage
-    flash(f"Hello {user.first_name} {user.last_name}, welcome to your dashboard", "success")
+    flash(f"Hello {user.first_name} {user.last_name}, successfully logged in", "success")
     return render_template('networkmanager/dashboard.html', user=user)

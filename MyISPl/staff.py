@@ -15,4 +15,5 @@ def dashboard():
     if user.role != USER_ROLE["Staff"]:
         flash("Access denied: You are not authorized to access the staff dashboard.", "error")
         return redirect(url_for('landing_page'))  # Redirect to homepage
+    flash(f"Hello {user.first_name} {user.last_name}, successfully logged in", "success")
     return render_template('staff/dashboard.html', user=user)

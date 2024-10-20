@@ -22,10 +22,10 @@
           <a class="nav-link active" aria-current="page" href="/">Home</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('aboutus') }}">About Us</a>
+          <a class="nav-link" href="{{ url_for('auth.aboutus') }}">About Us</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('functionalities') }}">Functionalities</a>
+          <a class="nav-link" href="{{ url_for('auth.functionalities') }}">Functionalities</a>
         </li>
         {% if current_user.is_authenticated %}
           <li class="nav-item">
