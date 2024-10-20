@@ -1,49 +1,62 @@
 {% extends "template.html" %}
-
 {% block content %}
-<div class="container mt-5">
+
+<div class="container-fluid mt-5">  <!-- Changed from container to container-fluid -->
     <h1 class="mb-4">Students List for {{ teacher.first_name }} {{ teacher.last_name }}</h1>
     {% if students %}
-        <table class="table table-bordered table-hover">
-            <thead class="thead-dark">
-                <tr>
-                    <th scope="col">Student ID</th>
-                    <th scope="col">Photo</th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Gender</th>
-                    <th scope="col">SAC Status</th>
-                    <th scope="col">Academic Performance</th>
-                    <th scope="col">Language Proficiency</th>
-                    <th scope="col">Classes</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for student in students %}
-                    <tr>
-                        <td>{{ student.student_id }}</td>
-                        <td><img src="{{ student.photo }}" alt="{{ student.first_name }} {{ student.last_name }}" class="img-thumbnail" style="max-width: 50px;"></td>
-                        <td>{{ student.first_name }} {{ student.last_name }}</td>
-                        <td>{{ student.gender }}</td>
-                        <td>in developing</td>
-                        <td>{{ student.get_academic_performance() }}</td>
-                        <td>{{ student.get_language_proficiency() }}</td>
-                        <td>
-                            <ul class="list-unstyled">
-                                {% for student_class in student.student_classes %}
-                                    {% if student_class.class_.user_id == teacher.user_id %}
-                                        <li>{{ student_class.class_.class_name }} ({{ student_class.class_.class_code }})</li>
-                                    {% endif %}
-                                {% endfor %}
-                            </ul>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th col='scope'>Student ID</th>
+                <th col='scope'>Photo</th>
+                <th col='scope'>Name</th>
+                <th col='scope'>Gender</th>
+                <th col='scope'>SAC Status</th>
+                <th col='scope'>Academic Performance</th>
+                <th col='scope'>Language Proficiency</th>
+                <th col='scope'>Classes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ student.student_id }}</td>
+                <td>
+                    <img src="{{ student.photo }}" alt="{{ student.student_id}}}" class="img-thumbnail" style="max-width: 50px;">
+                </td>
+                <td>{{ student.first_name }} {{ student.last_name }}</td>
+                <td>{{ student.gender }}</td>
+                <td>
+                    {% if student.sac_students %}
+                        {% for sac_student in student.sac_students %}
+                            {{ sac_student.sac.sac_name }}
+                            {% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        No SAC conditions
+                    {% endif %}
+                </td>
+                <td>{{ student.get_academic_performance() }}</td>
+                <td>{{ student.get_language_proficiency() }}</td>
+                <td>
+                    <ul>
+                        {% for student_class in student.student_classes %}
+                            {% if student_class.class_.user_id == teacher.user_id %}
+                                <li>{{ student_class.class_.class_name }} ({{ student_class.class_.class_code }})</li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
     {% else %}
-        <div class="alert alert-warning" role="alert">
-            No students found for this teacher.
-        </div>
+    <div class="alert alert-warning" role="alert">
+        No students found for this teacher.
+    </div>
     {% endif %}
 </div>
+
+
 {% endblock %}

@@ -70,6 +70,32 @@ class User(UserMixin, db.Model):
     seating_plans = association_proxy('user_seating_plans', 'seating_plan')
 
 
+class Sac(db.Model):
+    __tablename__ = 'SAC'
+    sac_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    sac_name = db.Column(db.String(), nullable=False, unique=True)
+
+    sac_students = relationship(
+        'SACStudent', back_populates='sac', cascade='all, delete-orphan')
+
+
+class SACStudent(db.Model):
+    __tablename__ = 'SACSTUDENT'
+    sac_id = db.Column(db.Integer, ForeignKey('SAC.sac_id'), primary_key=True,
+                       nullable=False)
+    student_id = db.Column(db.Integer, ForeignKey('STUDENT.student_id'),
+                           nullable=False)
+    class_id = db.Column(db.Integer, ForeignKey('CLASS.class_id'),
+                         nullable=False)
+
+    sac = relationship(
+        'Sac', back_populates='sac_students', lazy='subquery')
+    student = relationship(
+        'Student', back_populates='sac_students', lazy='subquery')
+    class_ = relationship(
+        'Class', back_populates='sac_students', lazy='subquery')
+
+
 class Student(db.Model):
     __tablename__ = 'STUDENT'
     student_id = db.Column(db.Integer, primary_key=True)
@@ -101,6 +127,8 @@ class Student(db.Model):
         cascade='all, delete-orphan')
     notes = relationship(
         'Note', back_populates='student', cascade='all, delete-orphan')
+    sac_students = relationship(
+        'SACStudent', back_populates='student', cascade='all, delete-orphan')
 
 
 class Class(db.Model):
@@ -116,6 +144,8 @@ class Class(db.Model):
         'SeatingPlan', back_populates='class_', cascade='all, delete-orphan')
     student_classes = relationship(
         'StudentClass', back_populates='class_', cascade='all, delete-orphan')
+    sac_students = relationship(
+        'SACStudent', back_populates='class_', cascade='all, delete-orphan')
 
 
 class Classroom(db.Model):

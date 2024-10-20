@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
-from models import db, User, Class, Student, StudentClass, USER_ROLE
+from models import db, User, Class, Student, StudentClass, USER_ROLE, Sac, SACStudent
 from sqlalchemy.orm import joinedload
 
 teacher_bp = Blueprint('teacher', __name__, url_prefix='/teacher')
@@ -23,14 +23,21 @@ def view_students():
     if teacher.role != USER_ROLE["Teacher"]:
         flash("Access denied: You are not authorized to view students.", "error")
         return redirect(url_for('teacher.dashboard'))
-    # Optimized query to get all students for the teacher's classes
+
+    # Optimized query to get all students for the teacher's classes, including SAC information
     students = (
         db.session.query(Student)
         .join(StudentClass, Student.student_id == StudentClass.student_id)
         .join(Class, StudentClass.class_id == Class.class_id)
+        .outerjoin(SACStudent, Student.student_id == SACStudent.student_id)
+        .outerjoin(Sac, SACStudent.sac_id == Sac.sac_id)
         .filter(Class.user_id == teacher.user_id)
-        .options(joinedload(Student.student_classes))
+        .options(
+            joinedload(Student.student_classes),
+            joinedload(Student.sac_students).joinedload(SACStudent.sac)
+        )
         .distinct()
         .all()
     )
+
     return render_template('teacher/view_students.html', teacher=teacher, students=students)

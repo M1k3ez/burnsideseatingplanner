@@ -162,3 +162,4 @@ cython_debug/
 #.idea/
 
 /myISPl/burnsideseatingplanner.code-workspace
+/myISPl/Redis-x64-3.0.504/
