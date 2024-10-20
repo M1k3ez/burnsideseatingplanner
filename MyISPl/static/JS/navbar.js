@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
         navbarToggler.addEventListener('click', function() {
             navbarCollapse.classList.toggle('show');
         });
+
         // Close navbar when clicking outside
         document.addEventListener('click', function(event) {
             const isClickInside = navbarToggler.contains(event.target) || navbarCollapse.contains(event.target);
@@ -37,10 +38,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Logout confirmation with modal
     const logoutLink = document.getElementById('logoutLink');
     const logoutModal = new bootstrap.Modal(document.getElementById('logoutModal'));
-    if (logoutLink) {
+    const confirmLogoutBtn = document.getElementById('confirmLogout');
+    if (logoutLink && confirmLogoutBtn) {
         logoutLink.addEventListener('click', function(event) {
             event.preventDefault();
             logoutModal.show();
+        });
+
+        confirmLogoutBtn.addEventListener('click', function() {
+            window.location.href = logoutLink.href;
         });
     }
 
