@@ -1,0 +1,43 @@
+/* Flash Styles */
+.flash {
+  position: fixed;
+  top: 70px;
+  right: 10px;
+  width: auto;
+  background-color: rgba(188, 152, 237, 1);
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  z-index: 1;
+  transform-origin: right;
+  animation: notify 4s ease-in-out;
+  display: flex;
+  align-items: center;
+}
+
+.flash li {
+  list-style-type: none;
+  margin: 0;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  background-color: transparent;
+}
+  
+.flash.hidden {
+  display: none;
+}
+  
+.flash.success {
+  background-color: rgb(12, 226, 76);
+}
+  
+.flash.error {
+    background-color: #ff474c;
+}
+
+@keyframes notify {
+  0% { transform: scaleX(0); opacity: 0; }
+  10% { transform: scaleX(1); opacity: 1; }
+  90% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(0); opacity: 0; }
+}

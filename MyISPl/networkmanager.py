@@ -17,4 +17,5 @@ def dashboard():
         flash(
             "Access denied: You are not authorized to access the Network Manager dashboard.", "error")
         return redirect(url_for('landing_page'))  # Redirect to homepage
+    flash(f"Hello {user.first_name} {user.last_name}, welcome to your dashboard", "success")
     return render_template('networkmanager/dashboard.html', user=user)

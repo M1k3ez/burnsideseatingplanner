@@ -71,6 +71,13 @@ def login():
 
 @auth_bp.route("/auth/login/callback")
 def callback():
+    error = request.args.get('error')
+    if error:
+        # Log the error and redirect to landing_page + error flash
+        print(f"OAuth error: {error}")
+        if error == "access_denied":
+            flash("We couldn't access to your account, please try again", "error")
+        return redirect(url_for("landing_page"))
     # Fetch authorization code from Google
     code = request.args.get("code")
     # Exchange the authorization code for tokens

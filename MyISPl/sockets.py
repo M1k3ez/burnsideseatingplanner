@@ -8,9 +8,9 @@ from redis_extensions import socketio, redis_client
 sockets_bp = Blueprint('sockets', __name__)
 
 # Constants
-SESSION_DURATION = timedelta(seconds=10)
+SESSION_DURATION = timedelta(minutes=10)
 print(f"SESSION_DURATION: {SESSION_DURATION}")
-VERIFICATION_TIMEOUT = timedelta(seconds=5)
+VERIFICATION_TIMEOUT = timedelta(minutes=10)
 
 # Thread lock
 thread = None
