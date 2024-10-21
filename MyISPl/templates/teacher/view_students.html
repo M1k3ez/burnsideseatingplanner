@@ -1,20 +1,30 @@
 {% extends "template.html" %}
 {% block content %}
 
-<div class="container-fluid mt-5">  <!-- Changed from container to container-fluid -->
+<div class="container-fluid mt-5">
     <h1 class="mb-4">Students List for {{ teacher.first_name }} {{ teacher.last_name }}</h1>
+    <!-- CSV Upload Section -->
+    <p>Import Student CSV</p>
+    <form action="{{ url_for('teacher.import_csv') }}" method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="csv_file">Upload CSV file:</label>
+            <input type="file" name="csv_file" id="csv_file" class="form-control" accept=".csv" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Import CSV</button>
+    </form>
+    <!-- Students List -->
     {% if students %}
-    <table class="table table-striped">
+    <table class="table table-striped table-bordered mt-4">
         <thead>
             <tr>
-                <th col='scope'>Student ID</th>
-                <th col='scope'>Photo</th>
-                <th col='scope'>Name</th>
-                <th col='scope'>Gender</th>
-                <th col='scope'>SAC Status</th>
-                <th col='scope'>Academic Performance</th>
-                <th col='scope'>Language Proficiency</th>
-                <th col='scope'>Classes</th>
+                <th scope='col'>Student ID</th>
+                <th scope='col'>Photo</th>
+                <th scope='col'>Name</th>
+                <th scope='col'>Gender</th>
+                <th scope='col'>SAC Status</th>
+                <th scope='col'>Academic Performance</th>
+                <th scope='col'>Language Proficiency</th>
+                <th scope='col'>Classes</th>
             </tr>
         </thead>
         <tbody>
@@ -22,7 +32,7 @@
             <tr>
                 <td>{{ student.student_id }}</td>
                 <td>
-                    <img src="{{ student.photo }}" alt="{{ student.student_id}}}" class="img-thumbnail" style="max-width: 50px;">
+                    <img src="{{ student.photo }}" alt="{{ student.student_id }}" class="img-thumbnail" style="max-width: 50px;">
                 </td>
                 <td>{{ student.first_name }} {{ student.last_name }}</td>
                 <td>{{ student.gender }}</td>
@@ -58,5 +68,7 @@
     {% endif %}
 </div>
 
+<script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script src="{{ url_for('static', filename='js/session_management.js') }}"></script>
 
 {% endblock %}

@@ -1,6 +1,7 @@
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, deferred
+from sqlalchemy.sql import expression
 from sqlalchemy import ForeignKey, CheckConstraint
 from sqlalchemy.ext.associationproxy import association_proxy
 from datetime import datetime, timezone
@@ -20,15 +21,17 @@ EXPIRY_STATUS = {
 }
 
 LANGUAGE_PROFICIENCY = {
-    "GOOD ENOUGH FOR COMMUNICATION AND LEARNING": 0,
-    "NOT GOOD ENOUGH FOR COMMUNICATION AND LEARNING": 1
+    "NEED TO BE UPDATED BY TEACHER": 0,
+    "GOOD ENOUGH FOR COMMUNICATION AND LEARNING": 1,
+    "NOT GOOD ENOUGH FOR COMMUNICATION AND LEARNING": 2
 }
 
 ACADEMIC_PERFORMANCE = {
-    "NOT ACHIEVING": 0,
-    "ACHIEVING": 1,
-    "ACHIEVING WELL": 2,
-    "EXCELLING": 3
+    "NEED TO BE UPDATED BY TEACHER": 0,
+    "NOT ACHIEVING": 1,
+    "ACHIEVING": 2,
+    "ACHIEVING WELL": 3,
+    "EXCELLING": 4
 }
 
 EMAIL_DOMAIN = "@burnside.school.nz"
@@ -99,12 +102,18 @@ class SACStudent(db.Model):
 class Student(db.Model):
     __tablename__ = 'STUDENT'
     student_id = db.Column(db.Integer, primary_key=True)
+    nsn = db.Column(db.Integer, unique=True)
     first_name = db.Column(db.String(), nullable=False)
     last_name = db.Column(db.String(), nullable=False)
     gender = db.Column(db.String(), nullable=False)
-    photo = db.Column(db.String(), nullable=False)
+    photo = deferred(db.Column(db.String(), nullable=True, server_default=expression.null()))
     academic_performance = db.Column(db.Integer, nullable=False)
     language_proficiency = db.Column(db.Integer, nullable=False)
+    level = db.Column(db.String(), nullable=True)
+    form_class = db.Column(db.String(), nullable=True)
+    date_of_birth = db.Column(db.String(), nullable=True)
+    ethnicity_l1 = db.Column(db.String(), nullable=True)
+    ethnicity_l2 = db.Column(db.String(), nullable=True)
 
     def get_academic_performance(self):
         """Convert academic performance integer to string based on ACADEMIC_PERFORMANCE mapping."""

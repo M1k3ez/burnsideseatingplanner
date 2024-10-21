@@ -1,7 +1,14 @@
-from flask import Blueprint, render_template, redirect, url_for, flash
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from models import db, User, Class, Student, StudentClass, USER_ROLE, Sac, SACStudent
 from sqlalchemy.orm import joinedload
+from io import StringIO
+from flask_socketio import emit
+from sockets import socketio
+import csv
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 teacher_bp = Blueprint('teacher', __name__, url_prefix='/teacher')
 
@@ -41,3 +48,104 @@ def view_students():
     )
 
     return render_template('teacher/view_students.html', teacher=teacher, students=students)
+
+
+@teacher_bp.route('/import_csv', methods=['GET', 'POST'])
+@login_required
+def import_csv():
+    if request.method == 'POST':
+        logging.debug("Import CSV request received")
+        if 'csv_file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['csv_file']
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            logging.debug("CSV import started")
+            socketio.emit('csv_import_status', {'status': 'Import started...'}, to='/')
+            try:
+                stream = StringIO(file.stream.read().decode("UTF8"), newline=None)
+                csv_reader = csv.reader(stream, delimiter=',')
+                # Skip the first row (title row)
+                next(csv_reader)
+                # Read the second row as the header row
+                headers = next(csv_reader)
+                logging.debug(f"CSV Headers: {headers}")
+                row_count = 0
+                # Process each row after the header
+                for row in csv_reader:
+                    # Skip any empty rows
+                    if not row or len(row) == 0:
+                        continue
+                    logging.debug(f"Processing row: {row}")
+                    # Create a dictionary mapping headers to values
+                    student_data = dict(zip(headers, row))
+                    logging.debug(f"Mapped student data: {student_data}")
+                    # Use 'Number' as the student_id and 'NSI' as nsn
+                    student_id = student_data.get('Number')  # Now using 'Number' for student_id
+                    nsn = student_data.get('NSI')  # Now using 'NSI' for nsn
+                    subject = student_data.get('Subject')
+                    if not student_id or not subject:
+                        logging.error(f"Skipping row due to missing subject or NSI: {student_data}")
+                        continue
+                    # Find or create the class
+                    class_ = Class.query.filter_by(user_id=current_user.user_id, class_name=subject).first()
+                    if not class_:
+                        class_ = Class(user_id=current_user.user_id, class_name=subject, class_code=subject)
+                        db.session.add(class_)
+                    # Find or create the student
+                    student = Student.query.get(student_id)
+                    if not student:
+                        student = Student(
+                            student_id=student_id,
+                            nsn=nsn, 
+                            first_name=student_data.get('First Name'),
+                            last_name=student_data.get('Last Name'),
+                            gender=student_data.get('Gender'),
+                            level=student_data.get('Level'),
+                            form_class=student_data.get('Tutor'),
+                            date_of_birth=student_data.get('Date of Birth'),
+                            ethnicity_l1=student_data.get('Ethnicity (L1)'),
+                            ethnicity_l2=student_data.get('Ethnicity (L2)'),
+                            academic_performance=0,
+                            language_proficiency=0 
+                        )
+                        db.session.add(student)
+                    else:
+                        student.nsn = nsn  # Update 'NSI' (nsn) if it exists
+                        student.first_name = student_data.get('First Name')
+                        student.last_name = student_data.get('Last Name')
+                        student.gender = student_data.get('Gender')
+                        student.level = student_data.get('Level')
+                        student.form_class = student_data.get('Tutor')
+                        student.date_of_birth = student_data.get('Date of Birth')
+                        student.ethnicity_l1 = student_data.get('Ethnicity (L1)')
+                        student.ethnicity_l2 = student_data.get('Ethnicity (L2)')
+                    # Create or update the StudentClass relationship
+                    student_class = StudentClass.query.filter_by(student_id=student_id, class_id=class_.class_id).first()
+                    if not student_class:
+                        student_class = StudentClass(student_id=student_id, class_id=class_.class_id)
+                        db.session.add(student_class)
+                    row_count += 1
+                    if row_count % 100 == 0:  # Emit progress every 100 rows
+                        db.session.commit()  # Commit changes periodically
+                        socketio.emit('csv_import_progress', {'status': f'{row_count} rows processed'}, to='/')
+                db.session.commit()  # Final commit
+                socketio.emit('csv_import_status', {'status': 'Import complete!'}, to='/')
+                flash('CSV imported successfully')
+            except Exception as e:
+                db.session.rollback()
+                logging.error(f'Error during CSV import: {str(e)}', exc_info=True)
+                socketio.emit('csv_import_status', {'status': f'Import failed: {str(e)}'}, to='/')
+            return redirect(url_for('teacher.view_students'))
+        else:
+            flash('Invalid file type. Please upload a CSV file.')
+            return redirect(request.url)
+    return render_template('teacher/view_students.html')
+
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'csv'}

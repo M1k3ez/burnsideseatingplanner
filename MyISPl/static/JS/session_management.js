@@ -10,6 +10,7 @@ socket.on('disconnect', function() {
     console.log('Disconnected from WebSocket.');
 });
 
+// Existing event listeners for verification
 socket.on('request_verification', function(data) {
     console.log('Received request_verification event from server.');
     showVerificationPrompt();
@@ -33,6 +34,29 @@ socket.on('force_logout', function(data) {
     window.location.href = '/logout';
 });
 
+// CSV Import Status Listener
+socket.on('csv_import_status', function(data) {
+    console.log('CSV Import Status: ', data.status);
+    document.getElementById('import_status').innerHTML = data.status;
+});
+
+// CSV Import Progress Listener
+socket.on('csv_import_progress', function(data) {
+    console.log('CSV Import Progress: ', data.status);
+    document.getElementById('import_progress').innerHTML = data.status;
+});
+
+// Handle the form submission for verification (already exists)
+document.getElementById('verificationForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var user_id = document.getElementById('verificationUserId').value;
+    if (user_id) {
+        socket.emit('verify_user', {'user_id': user_id});
+    } else {
+        window.location.href = '/logout';
+    }
+});
+
 function showVerificationPrompt() {
     var verificationModal = new bootstrap.Modal(document.getElementById('verificationModal'));
     verificationModal.show();
@@ -45,14 +69,3 @@ function hideVerificationPrompt() {
         document.getElementById('verificationUserId').value = '';
     }
 }
-
-// Handle the form submission
-document.getElementById('verificationForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    var user_id = document.getElementById('verificationUserId').value;
-    if (user_id) {
-        socket.emit('verify_user', {'user_id': user_id});
-    } else {
-        window.location.href = '/logout';
-    }
-});
