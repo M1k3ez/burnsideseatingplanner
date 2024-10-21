@@ -3,7 +3,6 @@ from flask_login import login_required, current_user
 from models import db, User, Class, Student, StudentClass, USER_ROLE, Sac, SACStudent
 from sqlalchemy.orm import joinedload
 from io import StringIO
-from flask_socketio import emit
 from sockets import socketio
 import csv
 import logging
@@ -53,18 +52,20 @@ def view_students():
 @teacher_bp.route('/import_csv', methods=['GET', 'POST'])
 @login_required
 def import_csv():
+    user = User.query.filter_by(user_id=current_user.user_id).first()
+    if user.role != USER_ROLE["Teacher"]:
+        flash("Access denied: You are not authorized to access the Teacher dashboard.", "error")
+        return redirect(url_for('landing_page'))
     if request.method == 'POST':
         logging.debug("Import CSV request received")
         if 'csv_file' not in request.files:
-            flash('No file part')
-            return redirect(request.url)
+            return flash("No file content", "error")
         file = request.files['csv_file']
         if file.filename == '':
-            flash('No selected file')
-            return redirect(request.url)
+            return flash("Please select your file", "error")
         if file and allowed_file(file.filename):
             logging.debug("CSV import started")
-            socketio.emit('csv_import_status', {'status': 'Import started...'}, to='/')
+            socketio.emit('csv_import_status', {'status': 'Import started...'}, room=current_user.get_id())
             try:
                 stream = StringIO(file.stream.read().decode("UTF8"), newline=None)
                 csv_reader = csv.reader(stream, delimiter=',')
@@ -134,17 +135,16 @@ def import_csv():
                         socketio.emit('csv_import_progress', {'status': f'{row_count} rows processed'}, to='/')
                 db.session.commit()  # Final commit
                 socketio.emit('csv_import_status', {'status': 'Import complete!'}, to='/')
-                flash('CSV imported successfully')
+                flash('CSV imported successfully', "success")
             except Exception as e:
                 db.session.rollback()
                 logging.error(f'Error during CSV import: {str(e)}', exc_info=True)
                 socketio.emit('csv_import_status', {'status': f'Import failed: {str(e)}'}, to='/')
             return redirect(url_for('teacher.view_students'))
         else:
-            flash('Invalid file type. Please upload a CSV file.')
+            flash('Invalid file type. Please upload a CSV file.', "error")
             return redirect(request.url)
-    return render_template('teacher/view_students.html')
-
+    return render_template('teacher/view_students.html', teacher=teacher)
 
 
 def allowed_file(filename):
