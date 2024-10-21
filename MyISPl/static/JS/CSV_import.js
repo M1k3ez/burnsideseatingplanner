@@ -6,8 +6,9 @@ document.addEventListener('DOMContentLoaded', function() {
         var formData = new FormData(this);
         var importStatus = document.getElementById('import_status');
         var importProgress = document.getElementById('import_progress');
+        var importType = document.getElementById('importType').value;
         
-        importStatus.innerHTML = 'Uploading file...';
+        importStatus.innerHTML = `Uploading ${importType} file...`;
         importProgress.innerHTML = '';
 
         fetch(this.action, {
@@ -22,10 +23,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     importStatus.innerHTML = `Error: ${jsonData.error}`;
                     showFlashMessage('danger', jsonData.error);
                 } else {
-                    importStatus.innerHTML = 'CSV import initiated. Please wait...';
+                    importStatus.innerHTML = `${importType} CSV import initiated. Please wait...`;
                 }
             } catch (e) {
-                // If the response is not JSON, it's likely the entire page (redirect)
                 document.open();
                 document.write(data);
                 document.close();
@@ -33,8 +33,8 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error:', error);
-            importStatus.innerHTML = 'Error initiating CSV import. Please try again.';
-            showFlashMessage('danger', 'Error initiating CSV import. Please try again.');
+            importStatus.innerHTML = `Error initiating ${importType} CSV import. Please try again.`;
+            showFlashMessage('danger', `Error initiating ${importType} CSV import. Please try again.`);
         });
     });
 
@@ -54,3 +54,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('import_progress').innerHTML = data.status;
     });
 });
+
+function showFlashMessage(type, message) {
+    console.log(`${type} message: ${message}`);
+}
