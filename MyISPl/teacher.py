@@ -1,8 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, send_file
 from flask_login import login_required, current_user
-from models import db, User, Class, Student, StudentClass, USER_ROLE, Sac, SACStudent
+from models import db, User, Class, Student, StudentClass, USER_ROLE, Sac, SACStudent, ACADEMIC_PERFORMANCE, LANGUAGE_PROFICIENCY
 from sqlalchemy.orm import joinedload
-from io import StringIO
+from io import StringIO, BytesIO
 from sockets import socketio
 import csv
 import logging
@@ -145,6 +145,42 @@ def import_csv():
             flash('Invalid file type. Please upload a CSV file.', "error")
             return redirect(request.url)
     return render_template('teacher/view_students.html', teacher=teacher)
+
+
+@teacher_bp.route('/export_csv')
+@login_required
+def export_csv():
+    teacher = User.query.filter_by(user_id=current_user.user_id).first()
+    if teacher.role != USER_ROLE["Teacher"]:
+        flash("Access denied: You are not authorized to export CSV.", "error")
+        return redirect(url_for('teacher.dashboard'))
+    students = (
+        db.session.query(Student)
+        .join(StudentClass, Student.student_id == StudentClass.student_id)
+        .join(Class, StudentClass.class_id == Class.class_id)
+        .filter(Class.user_id == teacher.user_id)
+        .distinct()
+        .all()
+    )
+    output = StringIO()
+    writer = csv.writer(output)
+    # Write header
+    writer.writerow(['Student ID', 'NSN', 'First Name', 'Last Name', 'Gender', 'Academic Performance', 
+                     'Language Proficiency', 'Level', 'Form Class', 'Date of Birth', 'Ethnicity L1', 'Ethnicity L2'])
+    # Write data
+    for student in students:
+        writer.writerow([
+            student.student_id, student.nsn, student.first_name, student.last_name, student.gender,
+            student.get_academic_performance(), student.get_language_proficiency(), student.level,
+            student.form_class, student.date_of_birth, student.ethnicity_l1, student.ethnicity_l2
+        ])
+    output.seek(0)
+    return send_file(
+        BytesIO(output.getvalue().encode()),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=f'{teacher.user_id} student list.csv'
+    )
 
 
 def allowed_file(filename):
