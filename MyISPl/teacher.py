@@ -1,7 +1,7 @@
 # At the top, after imports
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, send_file, current_app
 from flask_login import login_required, current_user
-from models import db, User, Class, Student, StudentClass, USER_ROLE, Sac, SACStudent, ACADEMIC_PERFORMANCE, LANGUAGE_PROFICIENCY, Classroom, SeatingPlan, UserSeatingPlan, ClassroomSeatingPlan
+from models import db, User, Class, Student, StudentClass, USER_ROLE, Sac, SACStudent, ACADEMIC_PERFORMANCE, LANGUAGE_PROFICIENCY, Classroom, SeatingPlan, UserSeatingPlan, ClassroomSeatingPlan, Note
 from sqlalchemy.orm import joinedload
 from io import StringIO, BytesIO
 from sockets import socketio
@@ -31,6 +31,7 @@ def full_name_filter(student_id):
     if student:
         return f"{student.first_name} {student.last_name}"
     return ""
+
 
 @teacher_bp.route('/dashboard')
 @login_required
@@ -193,7 +194,7 @@ def process_myispl_csv_row(student_data, user):
         logger.debug(f"Creating new student: {student_id}")
         student = Student(
             student_id=student_id,
-            nsn=nsn, 
+            nsn=nsn,
             first_name=student_data.get('First Name'),
             last_name=student_data.get('Last Name'),
             gender=student_data.get('Gender'),
@@ -353,37 +354,31 @@ def edit_seating_plan(plan_id):
     seating_plan = (SeatingPlan.query
         .options(joinedload(SeatingPlan.class_))  # Ensure class relationship is loaded
         .get_or_404(plan_id))
-    
     if str(seating_plan.user_id) != str(current_user.user_id):
         flash('Unauthorized access to this seating plan', 'error')
         return redirect(url_for('teacher.seating_plans'))
-    
     students = (Student.query
         .join(StudentClass)
         .filter(StudentClass.class_id == seating_plan.class_id)
         .all())
-        
     serialized_students = [{
         'student_id': student.student_id,
         'first_name': student.first_name,
         'last_name': student.last_name,
         'photo': student.photo if student.photo else None,
     } for student in students]
-    
     classroom = None
     if seating_plan.classroom_seating_plans:
         classroom = seating_plan.classroom_seating_plans[0].classroom
     if not classroom:
         flash('No classroom assigned to this seating plan', 'error')
         return redirect(url_for('teacher.seating_plans'))
-        
     layout_data = []
     if seating_plan.layout_data:
         try:
             layout_data = json.loads(seating_plan.layout_data)
         except json.JSONDecodeError:
-            layout_data = []
-            
+            layout_data = []      
     return render_template(
         'teacher/edit_seating_plan.html',
         seating_plan=seating_plan,
@@ -425,6 +420,74 @@ def delete_seating_plan(plan_id):
         db.session.rollback()
         flash(f'Error deleting seating plan: {str(e)}', 'error')
     return redirect(url_for('teacher.view_seating_plans'))
+
+
+@teacher_bp.route('/api/student/<int:student_id>/notes', methods=['GET'])
+@login_required
+def get_student_notes(student_id):
+    if current_user.role != USER_ROLE["Teacher"]:
+        return jsonify({'error': 'Unauthorized'}), 403
+    notes = (Note.query
+        .join(User)
+        .filter(Note.student_id == student_id)
+        .order_by(Note.date_created.desc())
+        .all())
+    return jsonify({
+        'notes': [{
+            'note_id': note.note_id,
+            'details': note.details,
+            'date_created': note.date_created.isoformat(),
+            'teacher_name': f"{note.teacher.first_name} {note.teacher.last_name}"
+        } for note in notes]
+    })
+
+
+@teacher_bp.route('/api/student/<int:student_id>/notes', methods=['POST'])
+@login_required
+def add_student_note(student_id):
+    if current_user.role != USER_ROLE["Teacher"]:
+        return jsonify({'error': 'Unauthorized'}), 403
+    data = request.get_json()
+    if not data or 'details' not in data:
+        return jsonify({'error': 'Missing note details'}), 400
+    student = Student.query.get_or_404(student_id)
+    note = Note(
+        student_id=student_id,
+        user_id=current_user.user_id,
+        details=data['details']
+    )
+    try:
+        db.session.add(note)
+        db.session.commit()
+        return jsonify({
+            'note': {
+                'note_id': note.note_id,
+                'details': note.details,
+                'date_created': note.date_created.isoformat(),
+                'teacher_name': f"{current_user.first_name} {current_user.last_name}"
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@teacher_bp.route('/api/notes/<int:note_id>', methods=['DELETE'])
+@login_required
+def delete_note(note_id):
+    if current_user.role != USER_ROLE["Teacher"]:
+        return jsonify({'error': 'Unauthorized'}), 403
+    note = Note.query.get_or_404(note_id)
+    if str(note.user_id) != str(current_user.user_id):
+        return jsonify({'error': 'Unauthorized to delete this note'}), 403
+    try:
+        db.session.delete(note)
+        db.session.commit()
+        return jsonify({'message': 'Note deleted successfully'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'csv'}

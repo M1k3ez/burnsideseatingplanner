@@ -2,12 +2,13 @@
 <html>
 <head>
     <title> My Interactive Seating Planner </title>
-    <link rel="stylesheet" href="/static/css/custom.css">
-    <link rel="stylesheet" href="/static/css/flash.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='/css/custom.css')}}")">
+    <link rel="stylesheet" href="{{ url_for('static', filename='/css/flash.css')}}>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/notes.css')}}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/seating_planner.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,10 +25,7 @@
             </div>
         {% endif %}
     {% endwith %}
-    
     {% block content %}{% endblock %}
-    
-    <!-- Verification Modal -->
     <div class="modal fade" id="verificationModal" tabindex="-1" aria-labelledby="verificationModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -57,5 +55,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
     <script src="{{ url_for('static', filename='js/seating_planner.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/notes.js')}}"></script>
+    <script src="{{ url_for('static', filename='js/init-notes.js')}}"></script>
 </body>
 </html>

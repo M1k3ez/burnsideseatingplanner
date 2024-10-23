@@ -1,8 +1,8 @@
 $(document).ready(function() {
     // Constants
     const gridSize = 5;
-    const CHAIR_WIDTH = 110;
-    const CHAIR_HEIGHT = 130;
+    const CHAIR_WIDTH = 120;
+    const CHAIR_HEIGHT = 140;
 
     // State variables
     let chairs = [];
@@ -25,7 +25,7 @@ $(document).ready(function() {
         }
 
         .chair-context-menu div {
-            padding: 8px 12px;
+            padding: 8px 12px;  
             cursor: pointer;
             transition: background-color 0.2s;
             background: white;
@@ -265,7 +265,7 @@ $(document).ready(function() {
             `${student.first_name.charAt(0).toUpperCase()}${student.last_name.charAt(0).toUpperCase()}` : '';
     }
 
-    // Initialization Functions
+    // Initialisation Functions
     function initializeData() {
         try {
             const canvasElement = $('#canvas');

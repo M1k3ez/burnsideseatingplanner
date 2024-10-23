@@ -3,7 +3,7 @@
 
 <div class="container-fluid mt-5">
     <h1 class="mb-4">Students List for {{ teacher.first_name }} {{ teacher.last_name }}</h1>
-    </div>
+</div>
     <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -12,7 +12,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="csvImportForm" action="{{ url_for('teacher.import_csv') }}" method="post" enctype="multipart/form-data">
+                <form id="csvImportForm" action="{{ url_for('teacher.import_csv') }}" method="post" enctype="multipart/form-data">
                         <div class="mb-3">
                             <label for="importType" class="form-label">Select Import Type:</label>
                             <select class="form-select" id="importType" name="import_type">
@@ -52,6 +52,7 @@
                 <th scope='col'>Academic Performance</th>
                 <th scope='col'>Language Proficiency</th>
                 <th scope='col'>Classes</th>
+                <th scope='col'>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -84,18 +85,53 @@
                         {% endfor %}
                     </ul>
                 </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <div class="alert alert-warning" role="alert">
-        No students found for this teacher.
-    </div>
-    {% endif %}
-</div>
-{% endblock %}
-{% block extra_js %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-<script src="{{ url_for('static', filename='js/CSV_import.js') }}"></script>
+                <td>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#studentNoteModal{{ student.student_id }}">
+                        Add & View Notes
+                    </button>
+                    <div id="studentNoteModal{{ student.student_id }}" class="modal fade notes-modal" tabindex="-1" aria-labelledby="studentNoteModalLabel{{ student.student_id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                          <div class="modal-content">
+                            <div class="modal-header">
+                              <h5 class="modal-title" id="studentNoteModalLabel{{ student.student_id }}">
+                                Add Note for {{ student.first_name }} {{ student.last_name }}
+                              </h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                              <div 
+                                id="student-notes-root{{ student.student_id }}"
+                                data-student-id="{{ student.student_id }}"
+                                data-student-name="{{ student.first_name }} {{ student.last_name }}"
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                    </div>
+{% endfor %}
+{% endif %}
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="{{ url_for('static', filename='js/notes.js') }}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const modals = document.querySelectorAll('[id^="studentNoteModal"]');
+    
+    modals.forEach(modal => {
+      const rootElement = modal.querySelector('[id^="student-notes-root"]');
+      if (rootElement) {
+        const studentId = rootElement.getAttribute('data-student-id');
+        const studentName = rootElement.getAttribute('data-student-name');
+        
+        const root = ReactDOM.createRoot(rootElement);
+        root.render(React.createElement(window.StudentNotes, {
+          studentId: studentId,
+          studentName: studentName
+        }));
+      }
+    });
+  });
+</script>
 {% endblock %}
