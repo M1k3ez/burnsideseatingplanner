@@ -424,7 +424,7 @@ def delete_seating_plan(plan_id):
     except Exception as e:
         db.session.rollback()
         flash(f'Error deleting seating plan: {str(e)}', 'error')
-    return redirect(url_for('teacher.seating_plans'))
+    return redirect(url_for('teacher.view_seating_plans'))
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'csv'}

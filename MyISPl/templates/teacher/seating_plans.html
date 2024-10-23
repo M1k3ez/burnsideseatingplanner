@@ -66,16 +66,12 @@
         </div>
     </div>
 </div>
-
-{% endblock %}
-
-{% block extra_js %}
 <script>
-function confirmDelete(planId, className) {
-    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    document.getElementById('deletePlanName').textContent = className;
-    document.getElementById('deleteForm').action = `/teacher/seating_plan/${planId}/delete`;
-    deleteModal.show();
-}
-</script>
+    function confirmDelete(planId, className) {
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        document.getElementById('deletePlanName').textContent = className;
+        document.getElementById('deleteForm').action = `/teacher/seating_plan/${planId}/delete`;
+        deleteModal.show();
+    }
+    </script>
 {% endblock %}
