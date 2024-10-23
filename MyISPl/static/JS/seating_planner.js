@@ -1,153 +1,152 @@
 $(document).ready(function() {
-    // Initialize variables
+    // Constants
     const gridSize = 5;
-    const CHAIR_WIDTH = 120;
-    const CHAIR_HEIGHT = 150;
-    let lastScrollTop = 0;
-    let lastScrollLeft = 0;
+    const CHAIR_WIDTH = 110;
+    const CHAIR_HEIGHT = 130;
+
+    // State variables
     let chairs = [];
     let students = [];
     let plan_id;
+    let lastScrollTop = 0;
+    let lastScrollLeft = 0;
+
+    // Inject required styles
     $("<style>")
     .prop("type", "text/css")
     .html(`
-        /* Your existing styles... */
-
         .chair-context-menu {
             background: white;
             border: 1px solid #ccc;
             border-radius: 4px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             z-index: 1000;
-            min-width: 120px;
+            min-width: 70px;
         }
 
         .chair-context-menu div {
             padding: 8px 12px;
             cursor: pointer;
             transition: background-color 0.2s;
-            background: white;  /* Added explicit background */
+            background: white;
         }
 
         .chair-context-menu div:hover {
             background-color: #f0f0f0;
         }
-            .grid-canvas.a4-portrait {
-            width: 794px;  /* A4 width at 96 DPI */
-            height: 1123px; /* A4 height at 96 DPI */
+
+        .grid-canvas.a4-portrait {
+            width: 794px;
+            height: 1123px;
         }
 
         .grid-canvas.a4-landscape {
-            width: 1123px; /* A4 height at 96 DPI */
-            height: 794px;  /* A4 width at 96 DPI */
+            width: 1123px;
+            height: 794px;
         }
 
-        /* Ensure grid-canvas maintains its background in both layouts */
         .grid-canvas.a4-portrait,
         .grid-canvas.a4-landscape {
             background-image: 
-                linear-gradient(to right, rgba(0,0,0,.05) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(0,0,0,.05) 1px, transparent 1px);
+                linear-gradient(to right, rgba(0,0,0,.02) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0,0,0,.02) 1px, transparent 1px);
             background-size: ${gridSize}px ${gridSize}px;
         }
-    `)
-    
-    .appendTo("head");
-    $('input[name="layout"]').change(function() {
-        const layout = $(this).val();
-        applyLayout(layout);
-    });
-    function initializeData() {
-        try {
-            const canvasElement = $('#canvas');
-            const rawData = canvasElement.data('chairs');
-            const rawStudents = canvasElement.data('students');
-            plan_id = canvasElement.data('plan-id');
-            
-            let parsedData;
-            if (typeof rawData === 'string') {
-                parsedData = JSON.parse(rawData);
-            } else {
-                parsedData = rawData || { chairs: [], layoutPreference: 'portrait' };
-            }
-    
-            // Handle both old and new data formats
-            if (Array.isArray(parsedData)) {
-                // Old format - just array of chairs
-                chairs = parsedData;
-                applyLayout('portrait'); // Default to portrait
-            } else {
-                // New format with layout preference
-                chairs = parsedData.chairs || [];
-                const savedLayout = parsedData.layoutPreference || 'portrait';
-                applyLayout(savedLayout);
-                $(`#layout${savedLayout.charAt(0).toUpperCase() + savedLayout.slice(1)}`).prop('checked', true);
-            }
-            
-            students = typeof rawStudents === 'string' ? JSON.parse(rawStudents) : rawStudents || [];
-            
-            if (!Array.isArray(chairs)) chairs = [];
-            if (!Array.isArray(students)) students = [];
-            
-            console.log('Data initialized:', {
-                plan_id, 
-                chairCount: chairs.length, 
-                studentCount: students.length,
-                layoutPreference: parsedData.layoutPreference
-            });
-        } catch (e) {
-            console.error('Error initializing data:', e);
-            chairs = [];
-            students = [];
-            applyLayout('portrait'); // Default to portrait on error
+        .chair {
+            width: ${CHAIR_WIDTH}px !important;
+            height: ${CHAIR_HEIGHT}px !important;
+            position: absolute;
+            border: 2px solid #ccc;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: move;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+            border-radius: 8px;
+            padding: 6px;
         }
+    `)
+    .appendTo("head");
+
+    // Layout Functions
+    function initializeLayout() {
+        // Remove existing event handlers
+        $('#layoutPortrait, #layoutLandscape').off('click');
+        
+        // Add new event handlers
+        $('#layoutPortrait').click(function() {
+            applyLayout('portrait');
+            $(this).addClass('active').siblings().removeClass('active');
+        });
+        
+        $('#layoutLandscape').click(function() {
+            applyLayout('landscape');
+            $(this).addClass('active').siblings().removeClass('active');
+        });
+
+        // Set initial layout
+        const savedLayout = localStorage.getItem('layoutPreference') || 'portrait';
+        applyLayout(savedLayout);
     }
 
-    function calculateFitZoom() {
+    function applyLayout(layout) {
         const canvas = $('#canvas');
-        const wrapper = $('.canvas-wrapper');
-        const wrapperWidth = wrapper.width() - 80; // Account for padding
-        const wrapperHeight = wrapper.height() - 80;
-        
-        const canvasWidth = canvas.width();
-        const canvasHeight = canvas.height();
-        
-        const widthRatio = wrapperWidth / canvasWidth;
-        const heightRatio = wrapperHeight / canvasHeight;
-        
-        return Math.min(widthRatio, heightRatio, 1); // Don't zoom in past 100%
+        canvas.removeClass('a4-portrait a4-landscape');
+        canvas.addClass(`a4-${layout}`);
+
+        // Update buttons
+        if (layout === 'portrait') {
+            $('#layoutPortrait').addClass('active');
+            $('#layoutLandscape').removeClass('active');
+        } else {
+            $('#layoutLandscape').addClass('active');
+            $('#layoutPortrait').removeClass('active');
+        }
+
+        // Save preference
+        localStorage.setItem('layoutPreference', layout);
+
+        // Reposition chairs if needed
+        repositionChairs();
     }
-    
-    function initializeZoomControls() {
-        $('#zoomIn').click(() => updateZoom(currentZoom + ZOOM_STEP));
-        $('#zoomOut').click(() => updateZoom(currentZoom - ZOOM_STEP));
-        $('#zoomFit').click(() => updateZoom(calculateFitZoom()));
-        
-        // Add mouse wheel zoom with Ctrl key
-        $('.canvas-wrapper').on('wheel', function(e) {
-            if (e.ctrlKey) {
-                e.preventDefault();
-                const delta = e.originalEvent.deltaY;
-                updateZoom(currentZoom + (delta > 0 ? -ZOOM_STEP : ZOOM_STEP));
+
+    function repositionChairs() {
+        const canvas = $('#canvas');
+        const maxX = canvas.width() - CHAIR_WIDTH;
+        const maxY = canvas.height() - CHAIR_HEIGHT;
+
+        chairs.forEach(function(chair) {
+            const chairElement = $(`.chair[data-chair-id="${chair.id}"]`);
+            let needsRepositioning = false;
+
+            if (chair.x > maxX) {
+                chair.x = maxX;
+                needsRepositioning = true;
+            }
+            if (chair.y > maxY) {
+                chair.y = maxY;
+                needsRepositioning = true;
+            }
+
+            if (needsRepositioning) {
+                chairElement.css({
+                    left: chair.x + 'px',
+                    top: chair.y + 'px'
+                });
             }
         });
     }
-    
+
+    // Chair Management Functions
     function deleteChair(chairId) {
         const chair = chairs.find(c => c.id === chairId);
         if (chair && chair.studentId) {
-            // If there's a student assigned, unassign them first
-            const studentElement = $(`.student-card[data-student-id="${chair.studentId}"]`);
-            studentElement.removeClass('assigned');
-            if (studentElement.hasClass('ui-draggable')) {
-                studentElement.draggable('enable');
-            }
-            console.log(`Unassigned student ${chair.studentId} from chair ${chairId}`);
+            unassignStudent(chair);
         }
-        
         chairs = chairs.filter(c => c.id !== chairId);
         $(`.chair[data-chair-id="${chairId}"]`).remove();
-        console.log(`Deleted chair ${chairId}`);
     }
 
     function unassignStudent(chair) {
@@ -166,41 +165,12 @@ $(document).ready(function() {
         chairDiv.removeClass('occupied');
         chairDiv.html('<div class="empty-seat">Empty</div>');
     }
-    function applyLayout(layout) {
-        const canvas = $('#canvas');
-        canvas.removeClass('a4-portrait a4-landscape');
-        canvas.addClass(`a4-${layout}`);
-        
-        // Validate and adjust chair positions
-        chairs.forEach(function(chair) {
-            const chairElement = $(`.chair[data-chair-id="${chair.id}"]`);
-            let needsRepositioning = false;
-            
-            const maxX = canvas.width() - CHAIR_WIDTH;
-            const maxY = canvas.height() - CHAIR_HEIGHT;
-            
-            if (chair.x > maxX) {
-                chair.x = maxX;
-                needsRepositioning = true;
-            }
-            if (chair.y > maxY) {
-                chair.y = maxY;
-                needsRepositioning = true;
-            }
-            
-            if (needsRepositioning && chairElement.length) {
-                chairElement.css({
-                    left: chair.x + 'px',
-                    top: chair.y + 'px'
-                });
-            }
-        });
-    }
+
     function setupContextMenu(chairDiv, chair) {
         chairDiv.off('contextmenu').on('contextmenu', function(e) {
             e.preventDefault();
             $('.chair-context-menu').remove();
-            
+
             const contextMenu = $('<div class="chair-context-menu"></div>')
                 .css({
                     position: 'absolute',
@@ -253,7 +223,7 @@ $(document).ready(function() {
                 `}
             </div>
         `);
-    
+
         $("#canvas").append(chairDiv);
         setupContextMenu(chairDiv, chair);
 
@@ -261,9 +231,7 @@ $(document).ready(function() {
             containment: "#canvas",
             grid: [gridSize, gridSize],
             stop: function(event, ui) {
-                const chairId = $(this).data('chair-id');
-                const position = ui.position;
-                updateChairPosition(chairId, position.left, position.top);
+                updateChairPosition(chair.id, ui.position.left, ui.position.top);
             }
         });
 
@@ -277,12 +245,57 @@ $(document).ready(function() {
         });
     }
 
+    // Student Functions
     function getStudentPhoto(studentId) {
         const student = students.find(s => s.student_id === studentId);
         if (student && student.photo) {
             return `<img src="${student.photo}" class="student-photo" alt="${student.first_name} ${student.last_name}">`;
-        } else {
-            return `<span class="student-initials">${getStudentInitials(studentId)}</span>`;
+        }
+        return `<span class="student-initials">${getStudentInitials(studentId)}</span>`;
+    }
+
+    function getStudentName(studentId) {
+        const student = students.find(s => s.student_id === studentId);
+        return student ? `${student.first_name} ${student.last_name}` : '';
+    }
+
+    function getStudentInitials(studentId) {
+        const student = students.find(s => s.student_id === studentId);
+        return student ? 
+            `${student.first_name.charAt(0).toUpperCase()}${student.last_name.charAt(0).toUpperCase()}` : '';
+    }
+
+    // Initialization Functions
+    function initializeData() {
+        try {
+            const canvasElement = $('#canvas');
+            const rawData = canvasElement.data('chairs');
+            const rawStudents = canvasElement.data('students');
+            plan_id = canvasElement.data('plan-id');
+
+            let parsedData = typeof rawData === 'string' ? JSON.parse(rawData) : rawData || {};
+            
+            if (Array.isArray(parsedData)) {
+                chairs = parsedData;
+            } else {
+                chairs = parsedData.chairs || [];
+                if (parsedData.layoutPreference) {
+                    localStorage.setItem('layoutPreference', parsedData.layoutPreference);
+                }
+            }
+
+            students = typeof rawStudents === 'string' ? JSON.parse(rawStudents) : rawStudents || [];
+
+            console.log('Data initialized:', {
+                plan_id,
+                chairCount: chairs.length,
+                studentCount: students.length,
+                layout: localStorage.getItem('layoutPreference')
+            });
+        } catch (e) {
+            console.error('Error initializing data:', e);
+            chairs = [];
+            students = [];
         }
     }
 
@@ -301,6 +314,7 @@ $(document).ready(function() {
                 ui.helper.css('opacity', 0.7);
             }
         });
+
         $("#new-chair").draggable({
             helper: "clone",
             revert: "invalid",
@@ -328,7 +342,6 @@ $(document).ready(function() {
             }
         });
 
-        // Initialize canvas drop zone
         $("#canvas").droppable({
             accept: "#new-chair, .student-card:not(.assigned)",
             drop: function(event, ui) {
@@ -365,20 +378,23 @@ $(document).ready(function() {
         });
     }
 
+    // Chair Position Functions
     function addNewChair(x, y) {
         x += lastScrollLeft;
         y += lastScrollTop;
         const newId = chairs.length > 0 ? Math.max(...chairs.map(c => c.id)) + 1 : 1;
-        const newChair = {
-            id: newId,
-            x: x,
-            y: y,
-            studentId: null
-        };
+        const newChair = { id: newId, x, y, studentId: null };
         chairs.push(newChair);
         renderChair(newChair);
     }
 
+    function updateChairPosition(chairId, x, y) {
+        x += lastScrollLeft;
+        y += lastScrollTop;
+        chairs = chairs.map(c => c.id === chairId ? { ...c, x, y } : c);
+    }
+
+    // Student Assignment Functions
     function assignStudentToNearestChair(studentId, x, y, studentElement) {
         x += lastScrollLeft;
         y += lastScrollTop;
@@ -419,57 +435,25 @@ $(document).ready(function() {
                 </div>
             `);
             chairs = chairs.map(c => c.id === chairId ? chair : c);
-            studentElement.addClass('assigned');
-            if (studentElement.hasClass('ui-draggable')) {
-                studentElement.draggable('disable');
-            }
+            studentElement.addClass('assigned').draggable('disable');
         } else {
             alert('This chair is already occupied.');
         }
     }
 
-    function updateChairPosition(chairId, x, y) {
-        x += lastScrollLeft;
-        y += lastScrollTop;
-        chairs = chairs.map(c => 
-            c.id === chairId 
-                ? { ...c, x, y } 
-                : c
-        );
-        console.log(`Updated chair ID ${chairId} position to X: ${x}, Y: ${y}`);
-    }
-    
-
-    function getStudentInitials(studentId) {
-        const student = students.find(s => s.student_id === studentId);
-        if (student) {
-            return `${student.first_name.charAt(0).toUpperCase()}${student.last_name.charAt(0).toUpperCase()}`;
-        }
-        return '';
-    }
-
-    function getStudentName(studentId) {
-        const student = students.find(s => s.student_id === studentId);
-        if (student) {
-            return `${student.first_name} ${student.last_name}`;
-        }
-        return '';
-    }
-
+    // Save Function
     function saveLayout() {
-        const currentLayout = $('input[name="layout"]:checked').val();
+        const currentLayout = $('#layoutPortrait').hasClass('active') ? 'portrait' : 'landscape';
         const layoutData = {
             chairs: chairs,
             layoutPreference: currentLayout
         };
-    
+
         $.ajax({
             url: `/teacher/api/seating_plan/${plan_id}/layout`,
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify({ 
-                layout_data: layoutData
-            }),
+            data: JSON.stringify({ layout_data: layoutData }),
             success: function(response) {
                 if (response.success) {
                     alert('Seating plan saved successfully!');
@@ -483,6 +467,7 @@ $(document).ready(function() {
         });
     }
 
+    // Window Event Handlers
     $(window).resize(function() {
         const canvas = $("#canvas");
         chairs.forEach(function(chair) {
@@ -498,21 +483,34 @@ $(document).ready(function() {
         });
     });
 
-    $('#canvas').on('contextmenu', function(e) {
-        e.preventDefault();
+    $(window).on('scroll', function() {
+        lastScrollTop = $(window).scrollTop();
+        lastScrollLeft = $(window).scrollLeft();
     });
+
+    // Document Event Handlers
     $(document).click(function(e) {
         if (!$(e.target).closest('.chair-context-menu').length) {
             $('.chair-context-menu').remove();
         }
     });
-    initializeData();
-    initializeChairs();
 
-    $("#saveChangesBtn").off('click').on('click', saveLayout);
+    // Canvas Event Handlers
+    $('#canvas').on('contextmenu', function(e) {
+        e.preventDefault();
+    });
 
+    // Error Handler
     window.onerror = function(msg, url, lineNo, columnNo, error) {
         console.error('Error: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo + '\nColumn: ' + columnNo + '\nError object: ' + JSON.stringify(error));
         return false;
     };
+
+    // Initialize Everything
+    initializeData();
+    initializeLayout();
+    initializeChairs();
+
+    // Bind Save Button
+    $("#saveChangesBtn").off('click').on('click', saveLayout);
 });
