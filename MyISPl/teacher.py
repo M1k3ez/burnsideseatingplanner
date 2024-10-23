@@ -1,15 +1,35 @@
+# At the top, after imports
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, send_file, current_app
 from flask_login import login_required, current_user
-from models import db, User, Class, Student, StudentClass, USER_ROLE, Sac, SACStudent, ACADEMIC_PERFORMANCE, LANGUAGE_PROFICIENCY
+from models import db, User, Class, Student, StudentClass, USER_ROLE, Sac, SACStudent, ACADEMIC_PERFORMANCE, LANGUAGE_PROFICIENCY, Classroom, SeatingPlan, UserSeatingPlan, ClassroomSeatingPlan
 from sqlalchemy.orm import joinedload
 from io import StringIO, BytesIO
 from sockets import socketio
 import csv
 import logging
+import json
 
+# Existing logging setup
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+# Existing blueprint setup
 teacher_bp = Blueprint('teacher', __name__, url_prefix='/teacher')
+
+
+@teacher_bp.app_template_filter('initials')
+def initials_filter(student_id):
+    student = Student.query.get(student_id)
+    if student:
+        return f"{student.first_name[0].upper()}{student.last_name[0].upper()}"
+    return ""
+    
+@teacher_bp.app_template_filter('full_name')
+def full_name_filter(student_id):
+    student = Student.query.get(student_id)
+    if student:
+        return f"{student.first_name} {student.last_name}"
+    return ""
 
 @teacher_bp.route('/dashboard')
 @login_required
@@ -18,8 +38,9 @@ def dashboard():
     if user.role != USER_ROLE["Teacher"]:
         flash("Access denied: You are not authorized to access the Teacher dashboard.", "error")
         return redirect(url_for('landing_page'))
-    flash(f"Hello {user.first_name} {user.last_name}, successfully logged in", "success")
-    return render_template('teacher/dashboard.html', user=user)
+    classes = Class.query.filter_by(user_id=user.user_id).all()
+    classrooms = Classroom.query.all()
+    return render_template('teacher/dashboard.html', user=user, classes=classes, classrooms=classrooms)
 
 @teacher_bp.route('/students')
 @login_required
@@ -258,6 +279,154 @@ def export_csv():
         as_attachment=True,
         download_name=f'{teacher.user_id} student list with classes.csv'
     )
+
+
+@teacher_bp.route('/seating_plans')
+@login_required
+def view_seating_plans():
+    if current_user.role != USER_ROLE["Teacher"]:
+        flash("Access denied: You are not authorized to view seating plans.", "error")
+        return redirect(url_for('teacher.dashboard'))
+    seating_plans = (SeatingPlan.query
+        .join(Class)
+        .outerjoin(ClassroomSeatingPlan)
+        .outerjoin(Classroom)
+        .filter(SeatingPlan.user_id == current_user.user_id)
+        .options(
+            joinedload(SeatingPlan.class_),
+            joinedload(SeatingPlan.classroom_seating_plans).joinedload(ClassroomSeatingPlan.classroom)
+        )
+        .all())
+    classrooms = Classroom.query.all()
+    classes = Class.query.filter_by(user_id=current_user.user_id).all()
+    return render_template(
+        'teacher/seating_plans.html',
+        seating_plans=seating_plans,
+        classrooms=classrooms,
+        classes=classes
+    )
+
+
+@teacher_bp.route('/create_seating_plan', methods=['POST'])
+@login_required
+def create_seating_plan():
+    try:
+        if current_user.role != USER_ROLE["Teacher"]:
+            flash("Access denied: You are not authorized to create seating plans.", "error")
+            return redirect(url_for('teacher.dashboard'))
+        data = request.form if request.form else request.json
+        class_id = data.get('class_id')
+        classroom_id = data.get('classroom_id')
+        if not class_id or not classroom_id:
+            flash('Missing required fields', 'error')
+            return redirect(url_for('teacher.seating_plans'))
+        class_ = Class.query.filter_by(
+            class_id=class_id,
+            user_id=current_user.user_id
+        ).first()
+        if not class_:
+            flash('Unauthorized access to this class', 'error')
+            return redirect(url_for('teacher.seating_plans'))
+        new_plan = SeatingPlan(
+            class_id=class_id,
+            user_id=current_user.user_id,
+            layout_data=json.dumps([])
+        )
+        db.session.add(new_plan)
+        db.session.flush()
+        classroom_assoc = ClassroomSeatingPlan(
+            classroom_id=classroom_id,
+            seating_plan_id=new_plan.seating_plan_id
+        )
+        db.session.add(classroom_assoc)
+        user_assoc = UserSeatingPlan(
+            user_id=current_user.user_id,
+            seating_plan_id=new_plan.seating_plan_id
+        )
+        db.session.add(user_assoc)
+        db.session.commit()
+        return redirect(url_for('teacher.edit_seating_plan', plan_id=new_plan.seating_plan_id))
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error creating seating plan: {str(e)}")
+        flash(f'Failed to create seating plan: {str(e)}', 'error')
+        return redirect(url_for('teacher.seating_plans'))
+
+
+@teacher_bp.route('/edit_seating_plan/<int:plan_id>', methods=['GET'])
+@login_required
+def edit_seating_plan(plan_id):
+    seating_plan = SeatingPlan.query.get_or_404(plan_id)
+    if str(seating_plan.user_id) != str(current_user.user_id):
+        flash('Unauthorized access to this seating plan', 'error')
+        return redirect(url_for('teacher.seating_plans'))
+    students = (Student.query
+        .join(StudentClass)
+        .filter(StudentClass.class_id == seating_plan.class_id)
+        .all())
+    serialized_students = [{
+        'student_id': student.student_id,
+        'first_name': student.first_name,
+        'last_name': student.last_name,
+        'photo': student.photo if student.photo else None,
+    } for student in students]
+    classroom = None
+    if seating_plan.classroom_seating_plans:
+        classroom = seating_plan.classroom_seating_plans[0].classroom
+    if not classroom:
+        flash('No classroom assigned to this seating plan', 'error')
+        return redirect(url_for('teacher.seating_plans'))
+    layout_data = []
+    if seating_plan.layout_data:
+        try:
+            layout_data = json.loads(seating_plan.layout_data)
+        except json.JSONDecodeError:
+            layout_data = []
+    return render_template(
+        'teacher/edit_seating_plan.html',
+        seating_plan=seating_plan,
+        students=serialized_students,
+        layout_data=layout_data,  # This should be a list
+        classroom=classroom
+    )
+
+
+@teacher_bp.route('/api/seating_plan/<int:plan_id>/layout', methods=['POST'])
+@login_required
+def save_seating_plan_layout(plan_id):
+    seating_plan = SeatingPlan.query.get_or_404(plan_id)
+    if str(seating_plan.user_id) != str(current_user.user_id):
+        return jsonify({'success': False, 'message': 'Unauthorized access.'}), 403
+    data = request.get_json()
+    layout_data = data.get('layout_data', [])
+    try:
+        seating_plan.layout_data = json.dumps(layout_data)  # Store as JSON string
+        db.session.commit()
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@teacher_bp.route('/delete_seating_plan/<int:plan_id>', methods=['POST'])
+@login_required
+def delete_seating_plan(plan_id):
+    try:
+        seating_plan = SeatingPlan.query.get_or_404(plan_id)
+        if str(seating_plan.user_id) != str(current_user.user_id):
+            flash('Unauthorized access', 'error')
+            return redirect(url_for('teacher.seating_plans'))
+        ClassroomSeatingPlan.query.filter_by(seating_plan_id=plan_id).delete()
+        UserSeatingPlan.query.filter_by(seating_plan_id=plan_id).delete()
+        db.session.delete(seating_plan)
+        db.session.commit()
+        flash('Seating plan deleted successfully', 'success')
+        return redirect(url_for('teacher.seating_plans'))
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting seating plan: {str(e)}")
+        flash(f'Error deleting seating plan: {str(e)}', 'error')
+        return redirect(url_for('teacher.seating_plans'))
 
 
 def allowed_file(filename):

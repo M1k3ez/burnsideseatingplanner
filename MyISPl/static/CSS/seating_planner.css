@@ -1,0 +1,140 @@
+/* /static/css/seating_planner.css */
+
+/* Canvas Wrapper */
+.canvas-wrapper {
+    width: 100%;
+    overflow: auto;
+    background: #f8f9fa;
+    padding: 1rem;
+    height: calc(100vh - 200px);
+    min-height: 600px;
+    position: relative;
+}
+
+/* Grid Canvas */
+.grid-canvas {
+    position: relative; /* Important for absolute positioning of chairs */
+    width: 1500px;
+    height: 100%;
+    background: white;
+    background-image: 
+        linear-gradient(to right, rgba(0,0,0,.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,0,0,.05) 1px, transparent 1px);
+    background-size: 20px 20px;
+    transform: none; /* Ensure no transform is applied */
+}
+
+/* Chair Template */
+.chair-template {
+    width: 60px;
+    height: 60px;
+    border: 2px dashed #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin: 0 auto;
+    transition: all 0.2s;
+    position: relative; /* Ensure it doesn't affect sibling elements */
+}
+
+.chair {
+    width: 60px; /* Must match CHAIR_WIDTH in JS */
+    height: 60px; /* Must match CHAIR_HEIGHT in JS */
+    position: absolute;
+    background: white;
+    border: 1px solid #90cdf4;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: move;
+    transition: all 0.2s;
+    margin: 0; /* Ensure no margin */
+    padding: 0; /* Ensure no padding */
+    box-sizing: border-box; /* Include borders in width/height */
+    transform: none; /* Remove any transform */
+}
+
+/* Occupied Chair */
+.chair.occupied {
+    background: #ebf8ff;
+}
+
+/* Student Assigned */
+.student-assigned {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+/* Student Info */
+.student-info {
+    text-align: center;
+}
+
+/* Student Initials */
+.student-initials {
+    font-weight: bold;
+    font-size: 1.1em;
+    margin-bottom: 2px;
+}
+
+/* Student Name */
+.student-name {
+    font-size: 0.8em;
+    line-height: 1.2;
+}
+
+/* Empty Seat */
+.empty-seat {
+    color: #a0aec0;
+    font-size: 0.9em;
+}
+
+/* Student Grid */
+.student-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 8px;
+    max-height: calc(100vh - 400px);
+    overflow-y: auto;
+}
+
+/* Student Card */
+.student-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 8px;
+    cursor: move;
+    transition: all 0.2s;
+}
+
+.student-card.assigned {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+/* /static/css/seating_planner.css */
+
+/* Draggable Helper for Chair */
+.ui-draggable-dragging .chair {
+    width: 60px; /* Match CHAIR_WIDTH */
+    height: 60px; /* Match CHAIR_HEIGHT */
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    border: 1px solid #90cdf4;
+    border-radius: 4px;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Vue.js Cloning Placeholder (if needed) */
+[v-cloak] {
+    display: none;
+}

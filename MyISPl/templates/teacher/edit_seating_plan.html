@@ -1,0 +1,67 @@
+{% extends "template.html" %}
+{% block content %}
+<div id="seatingApp" class="container-fluid">
+    <div class="mt-4">
+        <h5>Instructions:</h5>
+        <ul>
+            <li>Drag the chair (🪑) from the Components panel onto the canvas.</li>
+            <li>Drag a student card onto an empty chair to assign.</li>
+            <li>Drag chairs around to reposition.</li>
+            <li>Click "Save Changes" to save the layout.</li>
+        </ul>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4 mb-0">
+            Edit Seating Plan - {{ seating_plan.class_name }} ({{ seating_plan.class_code }})
+        </h2>
+        <button id="saveChangesBtn" class="btn btn-success">Save Changes</button>
+    </div>
+    <div class="row g-4">
+        <div class="col-lg-9">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="canvas-wrapper">
+                        <div class="grid-canvas" id="canvas" 
+                             data-chairs='{{ layout_data | tojson | safe }}' 
+                             data-students='{{ students | tojson | safe }}' 
+                             data-plan-id='{{ seating_plan.seating_plan_id }}'>
+                            <div class="grid-overlay"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Components</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chair-template" id="new-chair" title="Drag to add a new chair">
+                        🪑
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Students</h5>
+                </div>
+                <div class="card-body">
+                    <div class="student-grid">
+                        {% for student in students %}
+                            <div class="student-card" data-student-id="{{ student.student_id }}">
+                                <div class="student-info">
+                                    <div class="student-initials">{{ student.first_name[0] }}{{ student.last_name[0] }}</div>
+                                    <div class="student-name">
+                                        {{ student.first_name }}<br>{{ student.last_name }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

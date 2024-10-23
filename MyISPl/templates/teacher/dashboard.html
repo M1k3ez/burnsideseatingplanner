@@ -1,9 +1,88 @@
 {% extends "template.html" %}
 {% block content %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-4 text-center">
-            <p class="lead">Welcome, {{ user.first_name }} {{ user.last_name }} to your {{ user.get_role() }} Dashboard</p>
+
+<div class="container-fluid mt-5">
+    <h1 class="mb-4">Welcome, {{ user.first_name }} {{ user.last_name }}</h1>
+
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Student Management</h5>
+                    <p>View and manage your students' information.</p>
+                    <a href="{{ url_for('teacher.view_students') }}" class="btn btn-primary">View Students</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Create Seating Plan</h5>
+                    <p>Create a new seating plan for your class.</p>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newSeatingPlanModal">
+                        Create New Seating Plan
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Stored Seating Plans</h5>
+                    <p>View and manage your existing seating plans.</p>
+                    <a class="btn btn-primary">View Seating Plans</a>
+                </div>
+            </div>
+        </div>
+    </div>
+<div class="modal fade" id="newSeatingPlanModal" tabindex="-1" aria-labelledby="newSeatingPlanModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newSeatingPlanModalLabel">Create New Seating Plan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% if classes %}
+                    {% if classrooms %}
+                        <div id="errorMessage" class="alert alert-danger d-none"></div>
+                        <form id="seatingPlanForm" action="{{ url_for('teacher.create_seating_plan') }}" method="POST">
+                            <div class="mb-3">
+                                <label for="classSelect" class="form-label">Select Class</label>
+                                <select class="form-select" id="classSelect" name="class_id" required>
+                                    <option value="">Choose a class...</option>
+                                    {% for class in classes %}
+                                        <option value="{{ class.class_id }}">{{ class.class_name }} ({{ class.class_code }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="classroomSelect" class="form-label">Select Classroom</label>
+                                <select class="form-select" id="classroomSelect" name="classroom_id" required>
+                                    <option value="">Choose a classroom...</option>
+                                    {% for classroom in classrooms %}
+                                        <option value="{{ classroom.classroom_id }}">{{ classroom.block_name }}{{ classroom.room_number }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="submit" class="btn btn-primary">Create Seating Plan</button>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            No classrooms are available. Please contact your administrator to add classrooms.
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="alert alert-warning">
+                        You don't have any classes assigned. Please contact your administrator to assign classes.
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>

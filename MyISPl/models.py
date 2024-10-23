@@ -170,11 +170,13 @@ class Classroom(db.Model):
     seating_plans = association_proxy(
         'classroom_seating_plans', 'seating_plan')
 
-    # Classroom ID generator (block_label + room_number)
+    def generate_classroom_id(self):
+        return f"{self.block_name}{self.room_number}"
+    
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.classroom_id = self.classroom_id_generator(
-            self.block_label, self.room_number)
+        super(Classroom, self).__init__(**kwargs)
+        if not self.classroom_id:
+            self.classroom_id = self.generate_classroom_id()
 
     @staticmethod
     def classroom_id_generator(block_label, room_number):
@@ -201,8 +203,10 @@ class SeatingPlan(db.Model):
         db.Integer, primary_key=True, autoincrement=True)
     class_id = db.Column(
         db.Integer, ForeignKey('CLASS.class_id'), nullable=False)
+    user_id = db.Column(
+        db.Integer, ForeignKey('USER.user_id'), nullable=False)
     date_created = db.Column(db.DateTime(), nullable=False, default=datetime.now(timezone.utc))
-    layout_data = db.Column(db.Text(), nullable=False)
+    layout_data = db.Column(db.Text(), nullable=False, default='[]')
 
     class_ = relationship('Class', back_populates='seating_plans')
     seat_assignments = relationship(

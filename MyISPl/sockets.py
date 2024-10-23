@@ -4,6 +4,10 @@ from flask_login import current_user, logout_user
 from threading import Lock
 from datetime import datetime, timedelta, timezone
 from redis_extensions import socketio, redis_client
+import json
+
+
+temp_seating_plans = {}
 
 sockets_bp = Blueprint('sockets', __name__)
 
