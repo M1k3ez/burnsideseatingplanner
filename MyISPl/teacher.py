@@ -286,23 +286,18 @@ def view_seating_plans():
     if current_user.role != USER_ROLE["Teacher"]:
         flash("Access denied: You are not authorized to view seating plans.", "error")
         return redirect(url_for('teacher.dashboard'))
+        
     seating_plans = (SeatingPlan.query
         .join(Class)
-        .outerjoin(ClassroomSeatingPlan)
-        .outerjoin(Classroom)
         .filter(SeatingPlan.user_id == current_user.user_id)
         .options(
-            joinedload(SeatingPlan.class_),
-            joinedload(SeatingPlan.classroom_seating_plans).joinedload(ClassroomSeatingPlan.classroom)
+            joinedload(SeatingPlan.class_)
         )
+        .order_by(Class.class_name)
         .all())
-    classrooms = Classroom.query.all()
-    classes = Class.query.filter_by(user_id=current_user.user_id).all()
     return render_template(
         'teacher/seating_plans.html',
-        seating_plans=seating_plans,
-        classrooms=classrooms,
-        classes=classes
+        seating_plans=seating_plans
     )
 
 
@@ -415,26 +410,21 @@ def save_seating_plan_layout(plan_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-@teacher_bp.route('/delete_seating_plan/<int:plan_id>', methods=['POST'])
+@teacher_bp.route('/seating_plan/<int:plan_id>/delete', methods=['POST'])
 @login_required
 def delete_seating_plan(plan_id):
+    seating_plan = SeatingPlan.query.get_or_404(plan_id)
+    if str(seating_plan.user_id) != str(current_user.user_id):
+        flash('Unauthorized access to this seating plan', 'error')
+        return redirect(url_for('teacher.view_seating_plans'))
     try:
-        seating_plan = SeatingPlan.query.get_or_404(plan_id)
-        if str(seating_plan.user_id) != str(current_user.user_id):
-            flash('Unauthorized access', 'error')
-            return redirect(url_for('teacher.seating_plans'))
-        ClassroomSeatingPlan.query.filter_by(seating_plan_id=plan_id).delete()
-        UserSeatingPlan.query.filter_by(seating_plan_id=plan_id).delete()
         db.session.delete(seating_plan)
         db.session.commit()
         flash('Seating plan deleted successfully', 'success')
-        return redirect(url_for('teacher.seating_plans'))
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Error deleting seating plan: {str(e)}")
         flash(f'Error deleting seating plan: {str(e)}', 'error')
-        return redirect(url_for('teacher.seating_plans'))
-
+    return redirect(url_for('teacher.seating_plans'))
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'csv'}

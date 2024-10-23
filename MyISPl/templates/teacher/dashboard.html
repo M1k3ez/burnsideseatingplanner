@@ -32,11 +32,10 @@
                 <div class="card-body">
                     <h5 class="card-title">Stored Seating Plans</h5>
                     <p>View and manage your existing seating plans.</p>
-                    <a class="btn btn-primary">View Seating Plans</a>
+                    <a href="{{ url_for('teacher.view_seating_plans') }}" class="btn btn-primary">View Seating Plans</a>
                 </div>
             </div>
         </div>
-    </div>
 <div class="modal fade" id="newSeatingPlanModal" tabindex="-1" aria-labelledby="newSeatingPlanModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
