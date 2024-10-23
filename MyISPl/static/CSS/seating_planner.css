@@ -21,8 +21,8 @@
 }
 
 .chair-template {
-    width: 50px;
-    height: 50px;
+    width: 100px;  /* Updated to match new chair size */
+    height: 120px; /* Updated to match new chair size */
     border: 2px dashed #ccc;
     display: flex;
     align-items: center;
@@ -31,6 +31,28 @@
     margin: 0 auto;
     transition: all 0.2s;
     position: relative;
+    border-radius: 8px;
+}
+
+.chair {
+    width: 150px !important;
+    height: 180px !important;
+    position: absolute;
+    border: 2px solid #ccc;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: move;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.chair.occupied {
+    background-color: #e3f2fd;
+    border-color: #2196F3;
 }
 
 .student-grid {
@@ -54,6 +76,66 @@
     opacity: 0.6;
     pointer-events: none;
     background-color: #f0f0f0;
+}
+
+.student-photo {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 2px;
+}
+
+.student-card .student-photo {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 5px;
+}
+
+.chair .student-photo {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 4px;
+    border: 2px solid #2196F3;
+}
+
+.student-info {
+    text-align: center;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    word-break: break-word;
+    padding: 2px;
+}
+
+.chair .student-info {
+    width: 100%;
+    height: 100%;
+}
+
+.chair .student-name {
+    font-size: 11px;
+    line-height: 1.2;
+    text-align: center;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chair .student-id {
+    font-size: 12px;
+    font-weight: bold;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.empty-seat {
+    color: #666;
+    font-size: 14px;
 }
 
 [v-cloak] {

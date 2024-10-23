@@ -127,6 +127,7 @@ def import_csv():
             return redirect(request.url)
     return render_template('teacher/view_students.html', teacher=user)
 
+
 def process_kamar_csv_row(student_data, user):
     logger.debug(f"Processing KAMAR row: {student_data}")
     student_id = student_data.get('Number')
@@ -354,37 +355,45 @@ def create_seating_plan():
 @teacher_bp.route('/edit_seating_plan/<int:plan_id>', methods=['GET'])
 @login_required
 def edit_seating_plan(plan_id):
-    seating_plan = SeatingPlan.query.get_or_404(plan_id)
+    seating_plan = (SeatingPlan.query
+        .options(joinedload(SeatingPlan.class_))  # Ensure class relationship is loaded
+        .get_or_404(plan_id))
+    
     if str(seating_plan.user_id) != str(current_user.user_id):
         flash('Unauthorized access to this seating plan', 'error')
         return redirect(url_for('teacher.seating_plans'))
+    
     students = (Student.query
         .join(StudentClass)
         .filter(StudentClass.class_id == seating_plan.class_id)
         .all())
+        
     serialized_students = [{
         'student_id': student.student_id,
         'first_name': student.first_name,
         'last_name': student.last_name,
         'photo': student.photo if student.photo else None,
     } for student in students]
+    
     classroom = None
     if seating_plan.classroom_seating_plans:
         classroom = seating_plan.classroom_seating_plans[0].classroom
     if not classroom:
         flash('No classroom assigned to this seating plan', 'error')
         return redirect(url_for('teacher.seating_plans'))
+        
     layout_data = []
     if seating_plan.layout_data:
         try:
             layout_data = json.loads(seating_plan.layout_data)
         except json.JSONDecodeError:
             layout_data = []
+            
     return render_template(
         'teacher/edit_seating_plan.html',
         seating_plan=seating_plan,
         students=serialized_students,
-        layout_data=layout_data,  # This should be a list
+        layout_data=layout_data,
         classroom=classroom
     )
 

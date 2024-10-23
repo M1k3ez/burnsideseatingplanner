@@ -1,138 +1,39 @@
 $(document).ready(function() {
     // Initialize variables
-    const gridSize = 10;
-    const CHAIR_WIDTH = 50;
-    const CHAIR_HEIGHT = 50;
+    const gridSize = 5;
+    const CHAIR_WIDTH = 120;
+    const CHAIR_HEIGHT = 150;
     let lastScrollTop = 0;
     let lastScrollLeft = 0;
     let chairs = [];
     let students = [];
     let plan_id;
     $("<style>")
-        .prop("type", "text/css")
-        .html(`
-            .chair {
-                width: ${CHAIR_WIDTH}px !important;
-                height: ${CHAIR_HEIGHT}px !important;
-                font-size: 12px;
-                position: absolute;
-                border: 1px solid #ccc;
-                background: white;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: move;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                transition: all 0.2s ease;
-            }
+    .prop("type", "text/css")
+    .html(`
+        /* Your existing styles... */
 
-            .chair:hover {
-                border-color: #2196F3;
-                box-shadow: 0 2px 8px rgba(33,150,243,0.3);
-            }
+        .chair-context-menu {
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            min-width: 120px;
+        }
 
-            .student-info {
-                font-size: 11px;
-                text-align: center;
-                width: 100%;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                word-break: break-word;
-                padding: 2px;
-            }
+        .chair-context-menu div {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            background: white;  /* Added explicit background */
+        }
 
-            .student-info .student-initials {
-                font-weight: bold;
-                font-size: 14px;
-                margin-bottom: 2px;
-            }
-
-            .student-info .student-name {
-                font-size: 10px;
-                line-height: 1.2;
-            }
-
-            .empty-seat {
-                font-size: 11px;
-                color: #666;
-                width: 100%;
-                height: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .student-card.assigned {
-                opacity: 0.6;
-                pointer-events: none;
-                background-color: #f0f0f0;
-            }
-
-            .chair-context-menu {
-                background: white;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-                z-index: 1000;
-                min-width: 120px;
-            }
-
-            .chair-context-menu div {
-                padding: 8px 12px;
-                cursor: pointer;
-                transition: background-color 0.2s;
-            }
-
-            .chair-context-menu div:hover {
-                background-color: #f0f0f0;
-            }
-
-            .chair.occupied {
-                background-color: #e3f2fd;
-                border-color: #2196F3;
-            }
-
-            .chair.ui-state-hover {
-                background-color: #f0f9ff;
-                border-color: #42a5f5;
-                box-shadow: 0 2px 8px rgba(33,150,243,0.4);
-            }
-
-            .student-assigned {
-                width: 100%;
-                height: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 2px;
-            }
-
-            #new-chair {
-                width: ${CHAIR_WIDTH}px;
-                height: ${CHAIR_HEIGHT}px;
-                border: 1px solid #ccc;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: move;
-                background: white;
-                margin: 10px auto;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
-
-            #new-chair:hover {
-                border-color: #2196F3;
-                box-shadow: 0 2px 8px rgba(33,150,243,0.3);
-            }
-
-            .ui-draggable-dragging {
-                z-index: 1000;
-                opacity: 0.8;
-            }
-        `)
-        .appendTo("head");
-    
+        .chair-context-menu div:hover {
+            background-color: #f0f0f0;
+        }
+    `)
+    .appendTo("head");
     function initializeData() {
         try {
             const canvasElement = $('#canvas');
@@ -234,8 +135,10 @@ $(document).ready(function() {
                 ${chair.studentId ? `
                     <div class="student-assigned" data-student-id="${chair.studentId}">
                         <div class="student-info">
-                            <span class="student-initials">${getStudentInitials(chair.studentId)}</span>
+                            <div class="student-id">ID: ${chair.studentId}</div>
+                            ${getStudentPhoto(chair.studentId)}
                             <span class="student-name">${getStudentName(chair.studentId)}</span>
+                            <span class="student-note">Note: this is the latest note</span>
                         </div>
                     </div>
                 ` : `
@@ -243,7 +146,7 @@ $(document).ready(function() {
                 `}
             </div>
         `);
-
+    
         $("#canvas").append(chairDiv);
         setupContextMenu(chairDiv, chair);
 
@@ -265,6 +168,15 @@ $(document).ready(function() {
                 assignStudentToSpecificChair(studentId, chair.id, ui.draggable);
             }
         });
+    }
+
+    function getStudentPhoto(studentId) {
+        const student = students.find(s => s.student_id === studentId);
+        if (student && student.photo) {
+            return `<img src="${student.photo}" class="student-photo" alt="${student.first_name} ${student.last_name}">`;
+        } else {
+            return `<span class="student-initials">${getStudentInitials(studentId)}</span>`;
+        }
     }
 
     function initializeDraggables() {
@@ -392,8 +304,10 @@ $(document).ready(function() {
             chairDiv.html(`
                 <div class="student-assigned" data-student-id="${studentId}">
                     <div class="student-info">
-                        <span class="student-initials">${getStudentInitials(studentId)}</span>
+                        <div class="student-id">ID: ${studentId}</div>
+                        ${getStudentPhoto(studentId)}
                         <span class="student-name">${getStudentName(studentId)}</span>
+                        <span class="student-note">Note: this is the latest note</span>
                     </div>
                 </div>
             `);

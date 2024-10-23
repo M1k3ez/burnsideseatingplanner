@@ -2,20 +2,38 @@
 {% block content %}
 <div id="seatingApp" class="container-fluid">
     <div class="mt-4">
-        <h5>Instructions:</h5>
-        <ul>
-            <li>Drag the chair (🪑) from the Components panel onto the canvas.</li>
-            <li>Drag a student card onto an empty chair to assign.</li>
-            <li>Drag chairs around to reposition.</li>
-            <li>Click "Save Changes" to save the layout.</li>
-        </ul>
-    </div>
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h4 mb-0">
-            Edit Seating Plan - {{ seating_plan.class_name }} ({{ seating_plan.class_code }})
-        </h2>
-        <button id="saveChangesBtn" class="btn btn-success">Save Changes</button>
-    </div>
+        <!-- Updated header with class name -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="h4 mb-0">Edit Seating Plan - {{ seating_plan.class_.class_name }}</h2>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#instructionsModal">
+                    View Instructions
+                </button>
+                <button class="btn btn-primary" id="saveChangesBtn">Save Changes</button>
+            </div>
+        </div>
+        <div class="modal fade" id="instructionsModal" tabindex="-1" aria-labelledby="instructionsModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="instructionsModalLabel">Instructions</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <ul class="list-unstyled">
+                            <li class="mb-2">• Drag the chair (🪑) from the Components panel onto the canvas.</li>
+                            <li class="mb-2">• Drag a student card onto an empty chair to assign.</li>
+                            <li class="mb-2">• Drag chairs around to reposition.</li>
+                            <li class="mb-2">• Right-click on a chair to delete it or unassign student.</li>
+                            <li class="mb-2">• Click "Save Changes" to save the layout.</li>
+                        </ul>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     <div class="row g-4">
         <div class="col-lg-9">
             <div class="card">
@@ -46,22 +64,38 @@
                 <div class="card-header">
                     <h5 class="mb-0">Students</h5>
                 </div>
-                <div class="card-body">
-                    <div class="student-grid">
-                        {% for student in students %}
-                            <div class="student-card" data-student-id="{{ student.student_id }}">
-                                <div class="student-info">
-                                    <div class="student-initials">{{ student.first_name[0] }}{{ student.last_name[0] }}</div>
-                                    <div class="student-name">
-                                        {{ student.first_name }}<br>{{ student.last_name }}
-                                    </div>
+                <div class="student-grid">
+                    {% for student in students %}
+                    <div class="student-card" data-student-id="{{ student.student_id }}">
+                        <div class="student-info">
+                            {% if student.photo %}
+                                <img src="{{ student.photo }}" class="student-photo" alt="{{ student.first_name }} {{ student.last_name }}">
+                            {% else %}
+                                <div class="student-initials">
+                                    {{ student.first_name[0] }}{{ student.last_name[0] }}
                                 </div>
+                            {% endif %}
+                            <div class="student-name">
+                                {{ student.first_name }}
+                                {{ student.last_name }}
                             </div>
-                        {% endfor %}
+                        </div>
                     </div>
+                    {% endfor %}
+                </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $("#viewInstructionsBtn").click(function() {
+            $("#instructionsModal").modal('show');
+        });
+    });
+</script>
+{% endblock %}
 {% endblock %}
