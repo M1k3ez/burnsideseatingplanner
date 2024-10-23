@@ -23,7 +23,8 @@ def initials_filter(student_id):
     if student:
         return f"{student.first_name[0].upper()}{student.last_name[0].upper()}"
     return ""
-    
+
+
 @teacher_bp.app_template_filter('full_name')
 def full_name_filter(student_id):
     student = Student.query.get(student_id)
@@ -42,6 +43,7 @@ def dashboard():
     classrooms = Classroom.query.all()
     return render_template('teacher/dashboard.html', user=user, classes=classes, classrooms=classrooms)
 
+
 @teacher_bp.route('/students')
 @login_required
 def view_students():
@@ -49,7 +51,6 @@ def view_students():
     if teacher.role != USER_ROLE["Teacher"]:
         flash("Access denied: You are not authorized to view students.", "error")
         return redirect(url_for('teacher.dashboard'))
-
     students = (
         db.session.query(Student)
         .join(StudentClass, Student.student_id == StudentClass.student_id)
@@ -64,7 +65,6 @@ def view_students():
         .distinct()
         .all()
     )
-
     return render_template('teacher/view_students.html', teacher=teacher, students=students)
 
 
@@ -104,12 +104,10 @@ def import_csv():
                     logger.debug(f"Processing row: {row}")
                     student_data = dict(zip(headers, row))
                     logger.debug(f"Mapped student data: {student_data}")
-                    
                     if import_type == 'kamar':
                         process_kamar_csv_row(student_data, user)
                     elif import_type == 'myispl':
                         process_myispl_csv_row(student_data, user)
-                    
                     row_count += 1
                     if row_count % 100 == 0:
                         db.session.commit()
