@@ -405,9 +405,9 @@ def save_seating_plan_layout(plan_id):
     if str(seating_plan.user_id) != str(current_user.user_id):
         return jsonify({'success': False, 'message': 'Unauthorized access.'}), 403
     data = request.get_json()
-    layout_data = data.get('layout_data', [])
+    layout_data = data.get('layout_data', {})
     try:
-        seating_plan.layout_data = json.dumps(layout_data)  # Store as JSON string
+        seating_plan.layout_data = json.dumps(layout_data)
         db.session.commit()
         return jsonify({'success': True}), 200
     except Exception as e:

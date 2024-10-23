@@ -32,29 +32,107 @@ $(document).ready(function() {
         .chair-context-menu div:hover {
             background-color: #f0f0f0;
         }
+            .grid-canvas.a4-portrait {
+            width: 794px;  /* A4 width at 96 DPI */
+            height: 1123px; /* A4 height at 96 DPI */
+        }
+
+        .grid-canvas.a4-landscape {
+            width: 1123px; /* A4 height at 96 DPI */
+            height: 794px;  /* A4 width at 96 DPI */
+        }
+
+        /* Ensure grid-canvas maintains its background in both layouts */
+        .grid-canvas.a4-portrait,
+        .grid-canvas.a4-landscape {
+            background-image: 
+                linear-gradient(to right, rgba(0,0,0,.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0,0,0,.05) 1px, transparent 1px);
+            background-size: ${gridSize}px ${gridSize}px;
+        }
     `)
+    
     .appendTo("head");
+    $('input[name="layout"]').change(function() {
+        const layout = $(this).val();
+        applyLayout(layout);
+    });
     function initializeData() {
         try {
             const canvasElement = $('#canvas');
-            const rawChairs = canvasElement.data('chairs');
+            const rawData = canvasElement.data('chairs');
             const rawStudents = canvasElement.data('students');
             plan_id = canvasElement.data('plan-id');
             
-            chairs = typeof rawChairs === 'string' ? JSON.parse(rawChairs) : rawChairs || [];
+            let parsedData;
+            if (typeof rawData === 'string') {
+                parsedData = JSON.parse(rawData);
+            } else {
+                parsedData = rawData || { chairs: [], layoutPreference: 'portrait' };
+            }
+    
+            // Handle both old and new data formats
+            if (Array.isArray(parsedData)) {
+                // Old format - just array of chairs
+                chairs = parsedData;
+                applyLayout('portrait'); // Default to portrait
+            } else {
+                // New format with layout preference
+                chairs = parsedData.chairs || [];
+                const savedLayout = parsedData.layoutPreference || 'portrait';
+                applyLayout(savedLayout);
+                $(`#layout${savedLayout.charAt(0).toUpperCase() + savedLayout.slice(1)}`).prop('checked', true);
+            }
+            
             students = typeof rawStudents === 'string' ? JSON.parse(rawStudents) : rawStudents || [];
             
             if (!Array.isArray(chairs)) chairs = [];
             if (!Array.isArray(students)) students = [];
             
-            console.log('Data initialized:', { plan_id, chairCount: chairs.length, studentCount: students.length });
+            console.log('Data initialized:', {
+                plan_id, 
+                chairCount: chairs.length, 
+                studentCount: students.length,
+                layoutPreference: parsedData.layoutPreference
+            });
         } catch (e) {
             console.error('Error initializing data:', e);
             chairs = [];
             students = [];
+            applyLayout('portrait'); // Default to portrait on error
         }
     }
 
+    function calculateFitZoom() {
+        const canvas = $('#canvas');
+        const wrapper = $('.canvas-wrapper');
+        const wrapperWidth = wrapper.width() - 80; // Account for padding
+        const wrapperHeight = wrapper.height() - 80;
+        
+        const canvasWidth = canvas.width();
+        const canvasHeight = canvas.height();
+        
+        const widthRatio = wrapperWidth / canvasWidth;
+        const heightRatio = wrapperHeight / canvasHeight;
+        
+        return Math.min(widthRatio, heightRatio, 1); // Don't zoom in past 100%
+    }
+    
+    function initializeZoomControls() {
+        $('#zoomIn').click(() => updateZoom(currentZoom + ZOOM_STEP));
+        $('#zoomOut').click(() => updateZoom(currentZoom - ZOOM_STEP));
+        $('#zoomFit').click(() => updateZoom(calculateFitZoom()));
+        
+        // Add mouse wheel zoom with Ctrl key
+        $('.canvas-wrapper').on('wheel', function(e) {
+            if (e.ctrlKey) {
+                e.preventDefault();
+                const delta = e.originalEvent.deltaY;
+                updateZoom(currentZoom + (delta > 0 ? -ZOOM_STEP : ZOOM_STEP));
+            }
+        });
+    }
+    
     function deleteChair(chairId) {
         const chair = chairs.find(c => c.id === chairId);
         if (chair && chair.studentId) {
@@ -88,7 +166,36 @@ $(document).ready(function() {
         chairDiv.removeClass('occupied');
         chairDiv.html('<div class="empty-seat">Empty</div>');
     }
-
+    function applyLayout(layout) {
+        const canvas = $('#canvas');
+        canvas.removeClass('a4-portrait a4-landscape');
+        canvas.addClass(`a4-${layout}`);
+        
+        // Validate and adjust chair positions
+        chairs.forEach(function(chair) {
+            const chairElement = $(`.chair[data-chair-id="${chair.id}"]`);
+            let needsRepositioning = false;
+            
+            const maxX = canvas.width() - CHAIR_WIDTH;
+            const maxY = canvas.height() - CHAIR_HEIGHT;
+            
+            if (chair.x > maxX) {
+                chair.x = maxX;
+                needsRepositioning = true;
+            }
+            if (chair.y > maxY) {
+                chair.y = maxY;
+                needsRepositioning = true;
+            }
+            
+            if (needsRepositioning && chairElement.length) {
+                chairElement.css({
+                    left: chair.x + 'px',
+                    top: chair.y + 'px'
+                });
+            }
+        });
+    }
     function setupContextMenu(chairDiv, chair) {
         chairDiv.off('contextmenu').on('contextmenu', function(e) {
             e.preventDefault();
@@ -350,11 +457,19 @@ $(document).ready(function() {
     }
 
     function saveLayout() {
+        const currentLayout = $('input[name="layout"]:checked').val();
+        const layoutData = {
+            chairs: chairs,
+            layoutPreference: currentLayout
+        };
+    
         $.ajax({
             url: `/teacher/api/seating_plan/${plan_id}/layout`,
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify({ layout_data: chairs }),
+            data: JSON.stringify({ 
+                layout_data: layoutData
+            }),
             success: function(response) {
                 if (response.success) {
                     alert('Seating plan saved successfully!');
@@ -367,11 +482,6 @@ $(document).ready(function() {
             }
         });
     }
-
-    $(window).on('scroll', function() {
-        lastScrollTop = $(window).scrollTop();
-        lastScrollLeft = $(window).scrollLeft();
-    });
 
     $(window).resize(function() {
         const canvas = $("#canvas");

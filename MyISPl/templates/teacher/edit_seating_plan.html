@@ -34,6 +34,27 @@
                 </div>
             </div>
         </div>
+        <div class="layout-selector mb-3">
+            <label class="me-3">Choose Layout:</label>
+            <div class="btn-group" role="group">
+                <input type="radio" class="btn-check" name="layout" id="layoutPortrait" value="portrait" checked>
+                <label class="btn btn-outline-primary" for="layoutPortrait">
+                    A4 Portrait
+                </label>
+                
+                <input type="radio" class="btn-check" name="layout" id="layoutLandscape" value="landscape">
+                <label class="btn btn-outline-primary" for="layoutLandscape">
+                    A4 Landscape
+                </label>
+            </div>
+        </div> 
+    <div class="zoom-controls d-flex align-items-center gap-2">
+        <label>Zoom:</label>
+        <button class="btn btn-outline-secondary btn-sm" id="zoomOut">-</button>
+        <span id="zoomLevel" class="mx-2">100%</span>
+        <button class="btn btn-outline-secondary btn-sm" id="zoomIn">+</button>
+        <button class="btn btn-outline-secondary btn-sm ms-2" id="zoomFit">Fit to Screen</button>
+    </div>
     <div class="row g-4">
         <div class="col-lg-9">
             <div class="card">
