@@ -3,7 +3,6 @@
 
 <div class="container-fluid mt-5">
     <h1 class="mb-4">Welcome, {{ user.first_name }} {{ user.last_name }}</h1>
-
     <div class="row mt-4">
         <div class="col-md-4">
             <div class="card">
@@ -36,6 +35,27 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-md-3 row mt-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Seating Templates</h5>
+                    <p>Create and manage classroom seating templates.</p>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newTemplateModal">
+                            Create Template
+                        </button>
+                        <a href="{{ url_for('teacher.view_templates') }}" class="btn btn-secondary">
+                            View Templates
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Seating Plan Modal -->
 <div class="modal fade" id="newSeatingPlanModal" tabindex="-1" aria-labelledby="newSeatingPlanModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -46,7 +66,7 @@
             <div class="modal-body">
                 {% if classes %}
                     {% if classrooms %}
-                        <div id="errorMessage" class="alert alert-danger d-none"></div>
+                        <div id="seatingPlanErrorMessage" class="alert alert-danger d-none"></div>
                         <form id="seatingPlanForm" action="{{ url_for('teacher.create_seating_plan') }}" method="POST">
                             <div class="mb-3">
                                 <label for="classSelect" class="form-label">Select Class</label>
@@ -58,8 +78,8 @@
                                 </select>
                             </div>
                             <div class="mb-3">
-                                <label for="classroomSelect" class="form-label">Select Classroom</label>
-                                <select class="form-select" id="classroomSelect" name="classroom_id" required>
+                                <label for="seatingPlanClassroomSelect" class="form-label">Select Classroom</label>
+                                <select class="form-select" id="seatingPlanClassroomSelect" name="classroom_id" required>
                                     <option value="">Choose a classroom...</option>
                                     {% for classroom in classrooms %}
                                         <option value="{{ classroom.classroom_id }}">{{ classroom.block_name }}{{ classroom.room_number }}</option>
@@ -85,4 +105,55 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="newTemplateModal" tabindex="-1" aria-labelledby="newTemplateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newTemplateModalLabel">Create New Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% if classrooms %}
+                    <div id="templateErrorMessage" class="alert alert-danger d-none"></div>
+                    <div class="mb-3">
+                        <label for="templateClassroomSelect" class="form-label">Select Classroom:</label>
+                        <select class="form-select" id="templateClassroomSelect" required>
+                            <option value="">Choose a classroom...</option>
+                            {% for classroom in classrooms %}
+                                <option value="{{ classroom.classroom_id }}">
+                                    {{ classroom.block_label }}{{ classroom.room_number }} ({{ classroom.block_name }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="createTemplateBtn">Create Template</button>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        No classrooms are available. Please contact your administrator to add classrooms.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const createTemplateBtn = document.getElementById('createTemplateBtn');
+        if (createTemplateBtn) {
+            createTemplateBtn.addEventListener('click', function() {
+                const classroomId = document.getElementById('templateClassroomSelect').value;
+                if (!classroomId) {
+                    const errorMessage = document.getElementById('templateErrorMessage');
+                    errorMessage.textContent = 'Please select a classroom';
+                    errorMessage.classList.remove('d-none');
+                    return;
+                }
+                window.location.href = `/teacher/templates/create/${classroomId}`;
+            });
+        }
+    });
+</script>
 {% endblock %}

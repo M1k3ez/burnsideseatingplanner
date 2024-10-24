@@ -71,6 +71,8 @@ class User(UserMixin, db.Model):
     user_seating_plans = relationship(
         'UserSeatingPlan', back_populates='user', cascade='all, delete-orphan')
     seating_plans = association_proxy('user_seating_plans', 'seating_plan')
+    seating_templates = relationship(
+        'SeatingTemplates', back_populates='user', cascade='all, delete-orphan')
 
 
 class Sac(db.Model):
@@ -169,10 +171,12 @@ class Classroom(db.Model):
         cascade='all, delete-orphan')
     seating_plans = association_proxy(
         'classroom_seating_plans', 'seating_plan')
+    seating_templates = relationship(
+        'SeatingTemplates', back_populates='classroom', cascade='all, delete-orphan')
 
     def generate_classroom_id(self):
         return f"{self.block_name}{self.room_number}"
-    
+
     def __init__(self, **kwargs):
         super(Classroom, self).__init__(**kwargs)
         if not self.classroom_id:
@@ -195,6 +199,23 @@ class Note(db.Model):
 
     student = relationship('Student', back_populates='notes')
     teacher = relationship('User', back_populates='notes')
+
+
+class SeatingTemplates(db.Model):
+    __tablename__ = 'SEATING_TEMPLATES'
+    seating_template_id = db.Column(
+        db.Integer, primary_key=True, autoincrement=True)
+    classroom_id = db.Column(
+        db.String(), ForeignKey('CLASSROOM.classroom_id'), nullable=False)
+    user_id = db.Column(
+        db.Integer, ForeignKey('USER.user_id'), nullable=False)
+    date_created = db.Column(
+        db.DateTime(), nullable=False, default=datetime.now(timezone.utc))
+    layout_data = db .Column(
+        db.Text(), default='[]', nullable=False)
+
+    classroom = relationship('Classroom', back_populates='seating_templates')
+    user = relationship('User', back_populates='seating_templates')
 
 
 class SeatingPlan(db.Model):

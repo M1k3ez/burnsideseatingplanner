@@ -1,0 +1,288 @@
+/* Base layout */
+.seating-planner {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: #f0f0f0;
+}
+
+/* Toolbar styles */
+.toolbar {
+    background: white;
+    border-bottom: 1px solid #ddd;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+}
+
+.toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.toolbar-title {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.toolbar-controls {
+    display: flex;
+    align-items: center;
+}
+
+/* Side toolbar */
+.side-toolbar {
+    position: fixed;
+    right: 0;
+    top: 64px; /* Height of top toolbar */
+    bottom: 0;
+    width: 280px;
+    background: white;
+    border-left: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+}
+
+.side-toolbar-section {
+    padding: 1rem;
+    border-bottom: 1px solid #ddd;
+}
+
+.side-toolbar-title {
+    margin-bottom: 1rem;
+    font-size: 1rem;
+}
+
+/* Canvas area */
+.canvas-wrapper {
+    flex-grow: 1;
+    overflow: auto;
+    background: #f0f0f0;
+    padding: 2rem;
+    margin-right: 280px; /* Width of side toolbar */
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.grid-canvas {
+    background: white;
+    border: 1px solid #2b2b2b;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+    margin: auto;
+    position: relative;
+}
+
+/* Grid and layout styles */
+.grid-canvas.a4-portrait {
+    width: 794px;
+    height: 1123px;
+    background-image: 
+        linear-gradient(to right, rgba(0,0,0,.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,0,0,.02) 1px, transparent 1px);
+    background-size: 5px 5px;
+}
+
+.grid-canvas.a4-landscape {
+    width: 1123px;
+    height: 794px;
+    background-image: 
+        linear-gradient(to right, rgba(0,0,0,.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,0,0,.02) 1px, transparent 1px);
+    background-size: 5px 5px;
+}
+
+/* Chair styles */
+.chair-template {
+    width: 50px;
+    height: 70px;
+    border: 2px dashed #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin: 0 auto;
+    transition: all 0.2s;
+    position: relative;
+    border-radius: 8px;
+}
+
+.chair {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: move;
+    background: white;
+    border: 2px solid #ccc;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.chair:hover {
+    border-color: #2196F3;
+    box-shadow: 0 4px 8px rgba(33, 150, 243, 0.2);
+}
+
+.chair.ui-draggable-dragging {
+    opacity: 0.8;
+    transform: scale(1.05);
+    z-index: 1000;
+}
+
+/* Empty seat style */
+.empty-seat {
+    color: #666;
+    font-size: 14px;
+    text-align: center;
+}
+
+/* Context menu styles */
+.chair-context-menu {
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 1000;
+    min-width: 120px;
+    overflow: hidden;
+}
+
+.chair-context-menu div {
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.chair-context-menu div:hover {
+    background-color: #f5f5f5;
+}
+
+/* Template card styles for the viewer */
+.template-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+}
+
+.template-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.template-card .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 1rem;
+}
+
+.template-card .card-body {
+    padding: 1.25rem;
+}
+
+/* Button styles */
+.btn-group {
+    gap: 0.5rem;
+}
+
+.btn-group .btn {
+    border-radius: 4px !important;
+}
+
+/* Layout button styles */
+.btn-outline-secondary.active {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* Modal styles */
+.modal-content {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+}
+
+.modal-header {
+    border-bottom: 1px solid #dee2e6;
+    padding: 1rem 1.5rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid #dee2e6;
+    padding: 1rem 1.5rem;
+}
+
+/* Utility classes */
+.d-flex {
+    display: flex;
+}
+
+.align-items-center {
+    align-items: center;
+}
+
+.justify-content-between {
+    justify-content: space-between;
+}
+
+.me-3 {
+    margin-right: 1rem;
+}
+
+.ms-3 {
+    margin-left: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .side-toolbar {
+        width: 240px;
+    }
+    
+    .canvas-wrapper {
+        margin-right: 240px;
+    }
+}
+
+@media (max-width: 768px) {
+    .toolbar {
+        flex-direction: column;
+        height: auto;
+        padding: 1rem;
+    }
+    
+    .toolbar-left {
+        flex-direction: column;
+        gap: 1rem;
+        width: 100%;
+    }
+    
+    .toolbar-controls {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .side-toolbar {
+        width: 100%;
+        position: static;
+        border-left: none;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .canvas-wrapper {
+        margin-right: 0;
+        padding: 1rem;
+    }
+}

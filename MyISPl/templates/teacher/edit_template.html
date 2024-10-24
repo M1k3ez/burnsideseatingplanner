@@ -1,0 +1,65 @@
+{% extends "template.html" %}
+{% block content %}
+<div id="templateApp" class="seating-planner">
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <h2 class="toolbar-title">Template Editor - {{ classroom.block_name }}{{ classroom.room_number }}</h2>
+            <div class="toolbar-controls">
+                <div class="btn-group me-3">
+                    <button id="layoutPortrait" type="button" class="btn btn-outline-secondary">A4 Portrait</button>
+                    <button id="layoutLandscape" type="button" class="btn btn-outline-secondary">A4 Landscape</button>
+                </div>
+                <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#instructionsModal">
+                    Instructions
+                </button>
+                <button type="button" class="btn btn-success ms-3" id="saveTemplateBtn">
+                    Save Template
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="side-toolbar">
+        <div class="side-toolbar-section">
+            <h5 class="side-toolbar-title">Components</h5>
+            <div id="new-chair" class="chair-template" title="Drag to add a new chair">
+                🪑
+            </div>
+        </div>
+    </div>
+    <div class="canvas-wrapper">
+        <div id="canvas" class="grid-canvas">
+        </div>
+    </div>
+    <div class="modal fade" id="instructionsModal" tabindex="-1" aria-labelledby="instructionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="instructionsModalLabel">Instructions</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul>
+                        <li>Drag the chair (🪑) from the Components panel onto the canvas</li>
+                        <li>Drag chairs around to reposition them</li>
+                        <li>Right-click on a chair to delete it</li>
+                        <li>Click "Save Template" to save</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    window.TEMPLATE_DATA = {
+        layoutData: {{ layout_data | tojson | safe }},
+        templateId: "{{ template.seating_template_id if template else '' }}",
+        classroomId: "{{ classroom.classroom_id }}"
+    };
+</script>
+<script src="{{ url_for('static', filename='js/template_editor.js') }}"></script>
+{% endblock %}

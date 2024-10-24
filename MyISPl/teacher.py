@@ -1,7 +1,7 @@
 # At the top, after imports
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, send_file
 from flask_login import login_required, current_user
-from models import db, User, Class, Student, StudentClass, USER_ROLE, Sac, SACStudent, ACADEMIC_PERFORMANCE, LANGUAGE_PROFICIENCY, Classroom, SeatingPlan, UserSeatingPlan, ClassroomSeatingPlan, Note
+from models import db, User, Class, Student, StudentClass, USER_ROLE, Sac, SACStudent, ACADEMIC_PERFORMANCE, LANGUAGE_PROFICIENCY, Classroom, SeatingPlan, UserSeatingPlan, ClassroomSeatingPlan, Note, SeatingTemplates
 from sqlalchemy.orm import joinedload
 from io import StringIO, BytesIO
 from sockets import socketio
@@ -513,7 +513,6 @@ def get_class_students(class_id):
     if current_user.role != USER_ROLE["Teacher"]:
         return jsonify({'error': 'Unauthorized access'}), 403
     try:
-        # Verify the teacher has access to this class
         class_ = Class.query.filter_by(
             class_id=class_id,
             user_id=current_user.user_id
@@ -616,7 +615,6 @@ def search_class_students(class_id):
                 'language_proficiency': student.get_language_proficiency()
             } for student in students]
         })
-
     except Exception as e:
         logger.error(f"Error searching class students: {str(e)}")
         return jsonify({
@@ -625,9 +623,26 @@ def search_class_students(class_id):
         }), 500
 
 
+@teacher_bp.route('/api/sac-options', methods=['GET'])
+@login_required
+def get_sac_options():
+    try:
+        sacs = Sac.query.all()
+        return jsonify({
+            'success': True,
+            'sac_options': [{'sac_id': sac.sac_id, 'sac_name': sac.sac_name} for sac in sacs]
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @teacher_bp.route('/api/class/<int:class_id>/students/update', methods=['POST'])
 @login_required
 def update_class_students(class_id):
+    """Update multiple students in a class"""
     if current_user.role != USER_ROLE["Teacher"]:
         return jsonify({'error': 'Unauthorized access'}), 403
     try:
@@ -640,14 +655,26 @@ def update_class_students(class_id):
                 'success': False,
                 'error': 'Class not found or unauthorized'
             }), 404
-        data = request.get_json()
-        for student_id, updates in data.items():
+        updates = request.get_json()
+        for student_id, data in updates.items():
             student = Student.query.get(student_id)
-            if student and isinstance(updates, dict):
-                if 'academic_performance' in updates:
-                    student.academic_performance = int(updates['academic_performance'])
-                if 'language_proficiency' in updates:
-                    student.language_proficiency = int(updates['language_proficiency'])
+            if student:
+                student.first_name = data['first_name']
+                student.last_name = data['last_name']
+                student.gender = data['gender']
+                student.academic_performance = int(data['academic_performance'])
+                student.language_proficiency = int(data['language_proficiency'])
+                SACStudent.query.filter_by(
+                    student_id=student.student_id,
+                    class_id=class_id
+                ).delete()
+                for sac_id in data['sac_ids']:
+                    new_sac = SACStudent(
+                        student_id=student.student_id,
+                        class_id=class_id,
+                        sac_id=int(sac_id)
+                    )
+                    db.session.add(new_sac)
         db.session.commit()
         return jsonify({'success': True, 'message': 'Students updated successfully'})
     except Exception as e:
@@ -657,6 +684,89 @@ def update_class_students(class_id):
             'success': False,
             'error': 'Failed to update students'
         }), 500
+
+
+@teacher_bp.route('/templates')
+@login_required
+def view_templates():
+    """View templates for the current teacher"""
+    templates = (SeatingTemplates.query.filter_by(user_id=current_user.user_id).order_by(SeatingTemplates.date_created.desc()).all())
+    return render_template('teacher/view_templates.html', templates=templates)
+
+
+@teacher_bp.route('/templates/create/<classroom_id>')
+@login_required
+def create_template(classroom_id):
+    classroom = Classroom.query.get_or_404(classroom_id)
+    layout_data = {'chairs': [], 'layoutPreference': 'portrait'}
+    return render_template(
+        'teacher/edit_template.html', 
+        classroom=classroom,
+        layout_data=layout_data
+    )
+
+
+@teacher_bp.route('/templates/<int:template_id>/edit')
+@login_required
+def edit_template(template_id):
+    """Edit an existing template"""
+    template = SeatingTemplates.query.get_or_404(template_id)
+    if str(template.user_id) != str(current_user.user_id):
+        return 403
+    classroom = Classroom.query.get_or_404(template.classroom_id)
+    try:
+        layout_data = json.loads(template.layout_data)
+    except Exception as e:
+        layout_data = {'chairs': [], 'layoutPreference': 'portrait'}
+    return render_template(
+        'teacher/edit_template.html',
+        template=template,
+        classroom=classroom,
+        layout_data=layout_data
+    )
+
+
+@teacher_bp.route('/api/templates', methods=['POST'])
+@login_required
+def create_template_api():
+    data = request.get_json()
+    template = SeatingTemplates(
+        classroom_id=data['classroom_id'],
+        user_id=current_user.user_id,
+        layout_data=json.dumps(data['layout_data'])
+    )
+    try:
+        db.session.add(template)
+        db.session.commit()
+        return jsonify({'success': True, 'template_id': template.seating_template_id})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@teacher_bp.route('/api/templates/<int:template_id>', methods=['PUT', 'DELETE'])
+@login_required
+def manage_template_api(template_id):
+    template = SeatingTemplates.query.get_or_404(template_id)
+    if str(template.user_id) != str(current_user.user_id):
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    if request.method == 'DELETE':
+        try:
+            db.session.delete(template)
+            db.session.commit()
+            return jsonify({'success': True})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'error': str(e)}), 500
+    else:  # PUT
+        data = request.get_json()
+        try:
+            template.layout_data = json.dumps(data['layout_data'])
+            db.session.commit()
+            return jsonify({'success': True})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'error': str(e)}), 500
 
 
 def allowed_file(filename):
