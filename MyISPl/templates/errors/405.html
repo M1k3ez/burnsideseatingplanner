@@ -1,0 +1,66 @@
+{% extends "template.html" %}
+
+{% block content %}
+<div class="min-vh-100 d-flex align-items-center">
+    <div class="container text-center py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="mb-4">
+                    <h1 class="display-1 fw-bold text-info mb-2">405</h1>
+                    <h2 class="h3 mb-3">Method Not Allowed</h2>
+                    <p class="text-muted mb-4">Sorry! The requested method is not allowed for this resource.</p>
+                </div>->
+                <div class="d-flex flex-column flex-sm-row justify-content-center gap-2">
+                    <a href="{{ url_for('landing_page') }}" class="btn btn-info text-white">
+                        <i class="fas fa-home me-2"></i>Back to Home
+                    </a>
+                    {% if current_user.is_authenticated %}
+                        {% set dashboard_route = {
+                            0: 'teacher.dashboard',
+                            1: 'networkmanager.dashboard',
+                            2: 'admin.dashboard',
+                            3: 'staff.dashboard'
+                        }.get(current_user.role) %}
+                        {% if dashboard_route %}
+                            <a href="{{ url_for(dashboard_route) }}" class="btn btn-outline-info">
+                                <i class="fas fa-tachometer-alt me-2"></i>Back to Dashboard
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                <div class="mt-5">
+                    <p class="small text-muted">
+                        If you need help, please contact 
+                        <a href="mailto:support@burnside.school.nz" class="text-decoration-none text-info">technical support</a>.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="position-fixed bottom-0 end-0 p-5 d-none d-lg-block text-info opacity-10">
+            <i class="fas fa-ban fa-5x"></i>
+        </div>
+        <div class="position-fixed top-0 start-0 p-5 d-none d-lg-block text-info opacity-10">
+            <i class="fas fa-exclamation-circle fa-5x"></i>
+        </div>
+    </div>
+</div>
+<style>
+    .opacity-10 { opacity: 0.1; }
+    .display-1 {
+        animation: rotate 3s ease-in-out infinite;
+    }
+    @keyframes rotate {
+        0% { transform: rotate(0deg); }
+        25% { transform: rotate(-5deg); }
+        75% { transform: rotate(5deg); }
+        100% { transform: rotate(0deg); }
+    }
+    .btn {
+        transition: all 0.3s ease;
+    }
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}

@@ -50,6 +50,7 @@ def login():
             # Redirect to a page that doesn't cause a loop
             return redirect(url_for("landing_page"))
     # Proceed with OAuth flow for unauthenticated users
+    
     print("User is not authenticated. Starting OAuth flow.")
     google_provider_cfg = get_google_provider_cfg()
     if not google_provider_cfg:
@@ -107,10 +108,12 @@ def callback():
         user_last_name = userinfo_response.json()["family_name"]
         # Check if the email domain is allowed
         if not user_email.endswith(GOOGLE_EMAIL_DOMAINS_ALLOWED):
-            return f'Hi {user_first_name} {user_last_name}, please use your Burnside High School email'
+            flash(f'Hi {user_first_name} {user_last_name}, please use your Burnside High School email', "error")
+            return redirect(url_for("landing_page"))
         email_prefix = user_email.split('@')[0]
         if email_prefix.isalpha():
-            return f'Hi {user_first_name} {user_last_name}, you are a student. Please return to the homepage.'
+            flash(f'Hi {user_first_name} {user_last_name}, students are not allowed, please close the website')
+            return redirect(url_for("landing_page"))
         else:
             # Fetch or create the user in the database
             user = User.get(user_google_id)

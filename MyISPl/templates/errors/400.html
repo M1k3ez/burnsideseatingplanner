@@ -1,0 +1,67 @@
+{% extends "template.html" %}
+
+{% block content %}
+<div class="min-vh-100 d-flex align-items-center">
+    <div class="container text-center py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <!-- Error Content -->
+                <div class="mb-4">
+                    <h1 class="display-1 fw-bold text-warning mb-2">400</h1>
+                    <h2 class="h3 mb-3">Bad Request</h2>
+                    <p class="text-muted mb-4">Oops! The server cannot process your request due to invalid syntax.</p>
+                </div>
+                <div class="d-flex flex-column flex-sm-row justify-content-center gap-2">
+                    <a href="{{ url_for('landing_page') }}" class="btn btn-warning">
+                        <i class="fas fa-home me-2"></i>Back to Home
+                    </a>
+                    {% if current_user.is_authenticated %}
+                        {% set dashboard_route = {
+                            0: 'teacher.dashboard',
+                            1: 'networkmanager.dashboard',
+                            2: 'admin.dashboard',
+                            3: 'staff.dashboard'
+                        }.get(current_user.role) %}
+                        
+                        {% if dashboard_route %}
+                            <a href="{{ url_for(dashboard_route) }}" class="btn btn-outline-warning">
+                                <i class="fas fa-tachometer-alt me-2"></i>Back to Dashboard
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                <div class="mt-5">
+                    <p class="small text-muted">
+                        If you need assistance, please contact 
+                        <a href="mailto:support@burnside.school.nz" class="text-decoration-none text-warning">technical support</a>.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="position-fixed bottom-0 end-0 p-5 d-none d-lg-block text-warning opacity-10">
+            <i class="fas fa-exclamation-triangle fa-5x"></i>
+        </div>
+        <div class="position-fixed top-0 start-0 p-5 d-none d-lg-block text-warning opacity-10">
+            <i class="fas fa-bug fa-5x"></i>
+        </div>
+    </div>
+</div>
+<style>
+    .opacity-10 { opacity: 0.1; }
+    .display-1 {
+        animation: shake 0.5s ease-in-out infinite;
+    }
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+    .btn {
+        transition: all 0.3s ease;
+    }
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}

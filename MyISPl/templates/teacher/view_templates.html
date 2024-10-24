@@ -44,6 +44,44 @@
     {% endif %}
 </div>
 
+<!-- Create Template Modal -->
+<div class="modal fade" id="newTemplateModal" tabindex="-1" aria-labelledby="newTemplateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newTemplateModalLabel">Create New Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% if classrooms %}
+                    <div id="templateErrorMessage" class="alert alert-danger d-none"></div>
+                    <form id="templateForm">
+                        <div class="mb-3">
+                            <label for="templateClassroomSelect" class="form-label">Select Classroom:</label>
+                            <select class="form-select" id="templateClassroomSelect" name="classroom_id" required>
+                                <option value="">Choose a classroom...</option>
+                                {% for classroom in classrooms %}
+                                    <option value="{{ classroom.classroom_id }}">
+                                        {{ classroom.block_label }}{{ classroom.room_number }} ({{ classroom.block_name }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Create Template</button>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="alert alert-warning">
+                        No classrooms are available. Please contact your administrator to add classrooms.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog">
@@ -68,9 +106,23 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Template creation form handling
+    const templateForm = document.getElementById('templateForm');
+    if (templateForm) {
+        templateForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const classroomId = document.getElementById('templateClassroomSelect').value;
+            
+            if (!classroomId) {
+                const errorMessage = document.getElementById('templateErrorMessage');
+                errorMessage.textContent = 'Please select a classroom';
+                errorMessage.classList.remove('d-none');
+                return;
+            }
+            window.location.href = `/teacher/templates/create/${classroomId}`;
+        });
+    }
     let templateToDelete = null;
-
-    // Handle delete button clicks
     document.querySelectorAll('.delete-template-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             templateToDelete = this.dataset.templateId;
@@ -80,7 +132,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Handle delete confirmation
     document.getElementById('confirmDelete').addEventListener('click', async function() {
         if (!templateToDelete) return;
 

@@ -691,7 +691,11 @@ def update_class_students(class_id):
 def view_templates():
     """View templates for the current teacher"""
     templates = (SeatingTemplates.query.filter_by(user_id=current_user.user_id).order_by(SeatingTemplates.date_created.desc()).all())
-    return render_template('teacher/view_templates.html', templates=templates)
+    classrooms = Classroom.query.all() 
+    return render_template(
+        'teacher/view_templates.html',
+        templates=templates,
+        classrooms=classrooms)
 
 
 @teacher_bp.route('/templates/create/<classroom_id>')
