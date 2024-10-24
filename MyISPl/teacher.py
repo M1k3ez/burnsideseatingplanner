@@ -1,5 +1,5 @@
 # At the top, after imports
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, send_file, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, send_file
 from flask_login import login_required, current_user
 from models import db, User, Class, Student, StudentClass, USER_ROLE, Sac, SACStudent, ACADEMIC_PERFORMANCE, LANGUAGE_PROFICIENCY, Classroom, SeatingPlan, UserSeatingPlan, ClassroomSeatingPlan, Note
 from sqlalchemy.orm import joinedload
@@ -52,12 +52,9 @@ def view_students_page():
     if current_user.role != USER_ROLE["Teacher"]:
         flash("Access denied: You are not authorized to view students.", "error")
         return redirect(url_for('teacher.dashboard'))
-        
     teacher = User.query.filter_by(user_id=current_user.user_id).first()
-    
     # Get all classes for this teacher for the dropdown
     classes = Class.query.filter_by(user_id=teacher.user_id).all()
-    
     return render_template(
         'teacher/view_students.html',
         teacher=teacher,
@@ -117,7 +114,7 @@ def import_csv():
                 db.session.rollback()
                 logger.error(f'Error during CSV import: {str(e)}', exc_info=True)
                 socketio.emit('csv_import_status', {'status': f'Import failed: {str(e)}'}, to='/')
-            return redirect(url_for('teacher.view_students'))
+            return redirect(url_for('teacher.view_students_page'))
         else:
             logger.error(f"Invalid file type: {file.filename}")
             flash('Invalid file type. Please upload a CSV file.', "error")
@@ -283,7 +280,6 @@ def view_seating_plans():
     if current_user.role != USER_ROLE["Teacher"]:
         flash("Access denied: You are not authorized to view seating plans.", "error")
         return redirect(url_for('teacher.dashboard'))
-        
     seating_plans = (SeatingPlan.query
         .join(Class)
         .filter(SeatingPlan.user_id == current_user.user_id)
@@ -485,19 +481,15 @@ def delete_note(note_id):
         return jsonify({'error': str(e)}), 500
 
 
-# Add these routes at the end of your teacher.py file
-
 @teacher_bp.route('/api/classes', methods=['GET'])
 @login_required
 def get_teacher_classes():
     """Get all classes for the current teacher"""
     if current_user.role != USER_ROLE["Teacher"]:
         return jsonify({'error': 'Unauthorized access'}), 403
-        
     try:
         teacher = User.query.filter_by(user_id=current_user.user_id).first()
         classes = Class.query.filter_by(user_id=teacher.user_id).all()
-        
         return jsonify({
             'success': True,
             'classes': [{
@@ -513,27 +505,24 @@ def get_teacher_classes():
             'error': 'Failed to fetch classes'
         }), 500
 
+
 @teacher_bp.route('/api/class/<int:class_id>/students', methods=['GET'])
 @login_required
 def get_class_students(class_id):
     """Get all students for a specific class"""
     if current_user.role != USER_ROLE["Teacher"]:
         return jsonify({'error': 'Unauthorized access'}), 403
-        
     try:
         # Verify the teacher has access to this class
         class_ = Class.query.filter_by(
             class_id=class_id,
             user_id=current_user.user_id
         ).first()
-        
         if not class_:
             return jsonify({
                 'success': False,
                 'error': 'Class not found or unauthorized'
             }), 404
-
-        # Get students in this class with all necessary relationships
         students = (
             db.session.query(Student)
             .join(StudentClass, Student.student_id == StudentClass.student_id)
@@ -547,7 +536,6 @@ def get_class_students(class_id):
             .distinct()
             .all()
         )
-
         return jsonify({
             'success': True,
             'class_info': {
@@ -569,7 +557,6 @@ def get_class_students(class_id):
                 'language_proficiency': student.get_language_proficiency()
             } for student in students]
         })
-        
     except Exception as e:
         logger.error(f"Error fetching class students: {str(e)}")
         return jsonify({
@@ -577,13 +564,13 @@ def get_class_students(class_id):
             'error': 'Failed to fetch students'
         }), 500
 
+
 @teacher_bp.route('/api/class/<int:class_id>/students/search')
 @login_required
 def search_class_students(class_id):
     """Search students within a specific class"""
     if current_user.role != USER_ROLE["Teacher"]:
         return jsonify({'error': 'Unauthorized access'}), 403
-        
     try:
         search_term = request.args.get('q', '').strip()
         if not search_term:
@@ -591,20 +578,15 @@ def search_class_students(class_id):
                 'success': False,
                 'error': 'No search term provided'
             }), 400
-
-        # Verify teacher has access to this class
         class_ = Class.query.filter_by(
             class_id=class_id,
             user_id=current_user.user_id
         ).first()
-        
         if not class_:
             return jsonify({
                 'success': False,
                 'error': 'Class not found or unauthorized'
             }), 404
-
-        # Search students in this class
         students = (
             db.session.query(Student)
             .join(StudentClass, Student.student_id == StudentClass.student_id)
@@ -622,7 +604,6 @@ def search_class_students(class_id):
             .distinct()
             .all()
         )
-
         return jsonify({
             'success': True,
             'students': [{
@@ -642,7 +623,41 @@ def search_class_students(class_id):
             'success': False,
             'error': 'Failed to search students'
         }), 500
-        
+
+
+@teacher_bp.route('/api/class/<int:class_id>/students/update', methods=['POST'])
+@login_required
+def update_class_students(class_id):
+    if current_user.role != USER_ROLE["Teacher"]:
+        return jsonify({'error': 'Unauthorized access'}), 403
+    try:
+        class_ = Class.query.filter_by(
+            class_id=class_id,
+            user_id=current_user.user_id
+        ).first()
+        if not class_:
+            return jsonify({
+                'success': False,
+                'error': 'Class not found or unauthorized'
+            }), 404
+        data = request.get_json()
+        for student_id, updates in data.items():
+            student = Student.query.get(student_id)
+            if student and isinstance(updates, dict):
+                if 'academic_performance' in updates:
+                    student.academic_performance = int(updates['academic_performance'])
+                if 'language_proficiency' in updates:
+                    student.language_proficiency = int(updates['language_proficiency'])
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Students updated successfully'})
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error updating students: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to update students'
+        }), 500
+
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'csv'}
