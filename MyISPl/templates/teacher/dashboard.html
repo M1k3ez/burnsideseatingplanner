@@ -64,8 +64,8 @@
             <div class="modal-body">
                 {% if classes %}
                     {% if classrooms %}
-                        <div id="seatingPlanErrorMessage" class="alert alert-danger d-none"></div>
-                        <form id="seatingPlanForm" action="{{ url_for('teacher.create_seating_plan') }}" method="POST">
+                        <div id="errorMessage" class="alert alert-danger d-none"></div>
+                        <form id="seatingPlanForm">
                             <div class="mb-3">
                                 <label for="classSelect" class="form-label">Select Class</label>
                                 <select class="form-select" id="classSelect" name="class_id" required>
@@ -76,12 +76,18 @@
                                 </select>
                             </div>
                             <div class="mb-3">
-                                <label for="seatingPlanClassroomSelect" class="form-label">Select Classroom</label>
-                                <select class="form-select" id="seatingPlanClassroomSelect" name="classroom_id" required>
+                                <label for="classroomSelect" class="form-label">Select Classroom</label>
+                                <select class="form-select" id="classroomSelect" name="classroom_id" required>
                                     <option value="">Choose a classroom...</option>
                                     {% for classroom in classrooms %}
                                         <option value="{{ classroom.classroom_id }}">{{ classroom.block_name }}{{ classroom.room_number }}</option>
                                     {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3 template-select-container d-none">
+                                <label for="templateSelect" class="form-label">Use Template (Optional)</label>
+                                <select class="form-select" id="templateSelect" name="template_id">
+                                    <option value="">No template</option>
                                 </select>
                             </div>
                             <div class="modal-footer">
@@ -154,4 +160,5 @@
         }
     });
 </script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}

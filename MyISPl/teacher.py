@@ -298,46 +298,41 @@ def view_seating_plans():
 @login_required
 def create_seating_plan():
     try:
-        if current_user.role != USER_ROLE["Teacher"]:
-            flash("Access denied: You are not authorized to create seating plans.", "error")
-            return redirect(url_for('teacher.dashboard'))
-        data = request.form if request.form else request.json
+        data = request.get_json()
         class_id = data.get('class_id')
-        classroom_id = data.get('classroom_id')
-        if not class_id or not classroom_id:
-            flash('Missing required fields', 'error')
-            return redirect(url_for('teacher.seating_plans'))
-        class_ = Class.query.filter_by(
-            class_id=class_id,
-            user_id=current_user.user_id
-        ).first()
-        if not class_:
-            flash('Unauthorized access to this class', 'error')
-            return redirect(url_for('teacher.seating_plans'))
+        template_id = data.get('template_id')
+
+        # Create new seating plan
         new_plan = SeatingPlan(
             class_id=class_id,
-            user_id=current_user.user_id,
-            layout_data=json.dumps([])
+            user_id=current_user.user_id
         )
+        if template_id:
+            template = SeatingTemplates.query.get_or_404(template_id)
+            new_plan.layout_data = template.layout_data
         db.session.add(new_plan)
         db.session.flush()
-        classroom_assoc = ClassroomSeatingPlan(
-            classroom_id=classroom_id,
-            seating_plan_id=new_plan.seating_plan_id
-        )
+        if template_id:
+            template = SeatingTemplates.query.get(template_id)
+            classroom_assoc = ClassroomSeatingPlan(
+                classroom_id=template.classroom_id,
+                seating_plan_id=new_plan.seating_plan_id
+            )
+        else:
+            classroom_assoc = ClassroomSeatingPlan(
+                classroom_id=data.get('classroom_id'),
+                seating_plan_id=new_plan.seating_plan_id
+            )
         db.session.add(classroom_assoc)
-        user_assoc = UserSeatingPlan(
-            user_id=current_user.user_id,
-            seating_plan_id=new_plan.seating_plan_id
-        )
-        db.session.add(user_assoc)
         db.session.commit()
-        return redirect(url_for('teacher.edit_seating_plan', plan_id=new_plan.seating_plan_id))
+
+        return jsonify({
+            'success': True,
+            'seating_plan_id': new_plan.seating_plan_id
+        })
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Error creating seating plan: {str(e)}")
-        flash(f'Failed to create seating plan: {str(e)}', 'error')
-        return redirect(url_for('teacher.seating_plans'))
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @teacher_bp.route('/edit_seating_plan/<int:plan_id>', methods=['GET'])
@@ -771,6 +766,31 @@ def manage_template_api(template_id):
         except Exception as e:
             db.session.rollback()
             return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@teacher_bp.route('/api/classroom/<classroom_id>/templates')
+@login_required
+def get_classroom_templates(classroom_id):
+    """Get all templates for a specific classroom"""
+    try:
+        templates = SeatingTemplates.query.filter_by(
+            classroom_id=classroom_id,
+            user_id=current_user.user_id
+        ).order_by(SeatingTemplates.date_created.desc()).all()
+        return jsonify({
+            'success': True,
+            'templates': [{
+                'template_id': template.seating_template_id,
+                'date_created': template.date_created.isoformat(),
+                'classroom_id': template.classroom_id
+            } for template in templates]
+        })
+    except Exception as e:
+        logger.error(f"Error fetching templates: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to fetch templates'
+        }), 500
 
 
 def allowed_file(filename):
