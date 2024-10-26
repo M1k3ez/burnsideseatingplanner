@@ -33,16 +33,16 @@ def full_name_filter(student_id):
     return ""
 
 
-@teacher_bp.route('/dashboard')
+@teacher_bp.route('/toolbox')
 @login_required
-def dashboard():
+def toolbox():
     user = User.query.filter_by(user_id=current_user.user_id).first()
     if user.role != USER_ROLE["Teacher"]:
-        flash("Access denied: You are not authorized to access the Teacher dashboard.", "error")
+        flash("Access denied: You are not authorized to access the Teacher toolbox.", "error")
         return redirect(url_for('landing_page'))
     classes = Class.query.filter_by(user_id=user.user_id).all()
     classrooms = Classroom.query.all()
-    return render_template('teacher/dashboard.html', user=user, classes=classes, classrooms=classrooms)
+    return render_template('teacher/toolbox.html', user=user, classes=classes, classrooms=classrooms)
 
 
 @teacher_bp.route('/students')
@@ -51,7 +51,7 @@ def view_students_page():
     """Render the students view page"""
     if current_user.role != USER_ROLE["Teacher"]:
         flash("Access denied: You are not authorized to view students.", "error")
-        return redirect(url_for('teacher.dashboard'))
+        return redirect(url_for('teacher.toolbox'))
     teacher = User.query.filter_by(user_id=current_user.user_id).first()
     # Get all classes for this teacher for the dropdown
     classes = Class.query.filter_by(user_id=teacher.user_id).all()
@@ -67,7 +67,7 @@ def view_students_page():
 def import_csv():
     user = User.query.filter_by(user_id=current_user.user_id).first()
     if user.role != USER_ROLE["Teacher"]:
-        flash("Access denied: You are not authorized to access the Teacher dashboard.", "error")
+        flash("Access denied: You are not authorized to access the Teacher toolbox.", "error")
         return redirect(url_for('landing_page'))
     if request.method == 'POST':
         logger.info("Import CSV request received")
@@ -242,7 +242,7 @@ def export_csv():
     teacher = User.query.filter_by(user_id=current_user.user_id).first()
     if teacher.role != USER_ROLE["Teacher"]:
         flash("Access denied: You are not authorized to export CSV.", "error")
-        return redirect(url_for('teacher.dashboard'))
+        return redirect(url_for('teacher.toolbox'))
     students = (
         db.session.query(Student)
         .join(StudentClass, Student.student_id == StudentClass.student_id)
@@ -279,7 +279,7 @@ def export_csv():
 def view_seating_plans():
     if current_user.role != USER_ROLE["Teacher"]:
         flash("Access denied: You are not authorized to view seating plans.", "error")
-        return redirect(url_for('teacher.dashboard'))
+        return redirect(url_for('teacher.toolbox'))
     seating_plans = (SeatingPlan.query
         .join(Class)
         .filter(SeatingPlan.user_id == current_user.user_id)

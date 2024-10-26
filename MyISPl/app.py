@@ -60,12 +60,13 @@ def test403():
 
 @app.route('/test405')
 def test405():
-    return render_template('/errors/405.htmlk')
+    return render_template('/errors/405.html')
 
 
 @app.route('/test400')
 def test400():
     return render_template('/errors/400.html')
+
 
 if __name__ == '__main__':
     with app.app_context():

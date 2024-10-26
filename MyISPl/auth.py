@@ -130,17 +130,11 @@ def callback():
             print(f"User {user.email} logged in successfully.")
     user_role = user.get_role()
     print(f"User role is: {user_role} (role value: {user.role})")
-    if user_role == "Teacher":
-        return redirect(url_for('teacher.dashboard'))
-    elif user_role == "Network Manager":
-        return redirect(url_for('networkmanager.dashboard'))
-    elif user_role == "Administrator":
-        return redirect(url_for('administrator.dashboard'))
-    elif user_role == "Staff":
-        return redirect(url_for('staff.dashboard'))
+    if user_role:
+        return redirect(url_for(f'{user_role.lower().replace(" ", "")}.view_seating_plans'))
     else:
-        print(f'{"Invalid email, please login again."}')
-    return redirect(url_for("landing_page"))
+        flash("Invalid email, please login again.")
+        return redirect(url_for("landing_page"))
 
 
 @auth_bp.route('/functionalities')
