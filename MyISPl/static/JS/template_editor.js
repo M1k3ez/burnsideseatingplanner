@@ -309,7 +309,95 @@ $(document).ready(function() {
         });
     }
 
-    // Window event handlers
+    const DEFAULT_TEMPLATE_SEATS = 30;
+    function generateDefaultChairs(canvasWidth, canvasHeight, isTemplate = false) {
+        const CHAIR_WIDTH = 120;
+        const CHAIR_HEIGHT = 120;
+        const MARGIN = 20;
+        const seatCount = isTemplate ? DEFAULT_TEMPLATE_SEATS : getStudentCount();
+        const maxChairsPerRow = Math.floor((canvasWidth - MARGIN) / (CHAIR_WIDTH + MARGIN));
+        const numberOfRows = Math.ceil(seatCount / maxChairsPerRow);
+        const totalWidth = Math.min(maxChairsPerRow, seatCount) * (CHAIR_WIDTH + MARGIN) - MARGIN;
+        const totalHeight = numberOfRows * (CHAIR_HEIGHT + MARGIN) - MARGIN;
+        const startX = (canvasWidth - totalWidth) / 2;
+        const startY = (canvasHeight - totalHeight) / 2;
+        const newChairs = [];
+        let chairId = 1;
+        
+        for (let row = 0; row < numberOfRows; row++) {
+            const chairsInThisRow = row === numberOfRows - 1 ? 
+                seatCount - (row * maxChairsPerRow) : 
+                maxChairsPerRow;
+                
+            for (let col = 0; col < chairsInThisRow; col++) {
+                newChairs.push({
+                    id: chairId++,
+                    x: startX + col * (CHAIR_WIDTH + MARGIN),
+                    y: startY + row * (CHAIR_HEIGHT + MARGIN)
+                });
+            }
+        }
+        
+        return newChairs;
+    }
+
+    function isTemplateEditor() {
+        return window.location.pathname.includes('/templates/');
+    }
+
+    function getStudentCount() {
+        if (isTemplateEditor()) {
+            return DEFAULT_TEMPLATE_SEATS;
+        }
+        const studentsData = $('#canvas').attr('students');
+        if (studentsData) {
+            const students = JSON.parse(studentsData);
+            return students.length;
+        }
+        return 0;
+    }
+
+    function initializeData() {
+        try {
+            let layoutData;
+            const existingLayout = window.TEMPLATE_DATA ? window.TEMPLATE_DATA.layoutData : null;
+            if (existingLayout) {
+                if (Array.isArray(existingLayout)) {
+                    chairs = existingLayout;
+                } else if (existingLayout.chairs) {
+                    chairs = existingLayout.chairs;
+                    if (existingLayout.layoutPreference) {
+                        localStorage.setItem('templateLayoutPreference', existingLayout.layoutPreference);
+                    }
+                }
+            }
+            if (!chairs || chairs.length === 0) {
+                const layout = localStorage.getItem('templateLayoutPreference') || 'portrait';
+                const canvasWidth = layout === 'portrait' ? 794 : 1123;
+                const canvasHeight = layout === 'portrait' ? 1123 : 794;
+                chairs = generateDefaultChairs(canvasWidth, canvasHeight, isTemplateEditor());
+            }
+            console.log('Layout initialized:', {
+                chairCount: chairs.length,
+                isTemplate: isTemplateEditor(),
+                layout: localStorage.getItem('templateLayoutPreference')
+            });
+            
+        } catch (e) {
+            console.error('Error initializing layout:', e);
+            chairs = [];
+        }
+    }
+
+    $('#autoArrangeBtn').click(function() {
+        const layout = localStorage.getItem('templateLayoutPreference') || 'portrait';
+        const canvasWidth = layout === 'portrait' ? 794 : 1123;
+        const canvasHeight = layout === 'portrait' ? 1123 : 794;
+        
+        chairs = generateDefaultChairs(canvasWidth, canvasHeight, isTemplateEditor());
+        initializeChairs();
+    });
+
     $(window).resize(function() {
         const canvas = $("#canvas");
         chairs.forEach(function(chair) {
@@ -330,7 +418,6 @@ $(document).ready(function() {
         lastScrollLeft = $(window).scrollLeft();
     });
 
-    // Document event handlers
     $(document).click(function(e) {
         if (!$(e.target).closest('.chair-context-menu').length) {
             $('.chair-context-menu').remove();

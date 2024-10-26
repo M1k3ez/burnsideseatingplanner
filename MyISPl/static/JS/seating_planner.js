@@ -1,8 +1,8 @@
 $(document).ready(function() {
     // Constants
     const gridSize = 5;
-    const CHAIR_WIDTH = 120;
-    const CHAIR_HEIGHT = 120;
+    const CHAIR_WIDTH = 110;
+    const CHAIR_HEIGHT = 105;
 
     // State variables
     let chairs = [];
