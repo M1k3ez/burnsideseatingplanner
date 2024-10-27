@@ -122,119 +122,6 @@ def import_csv():
     return render_template('teacher/view_students.html', teacher=user)
 
 
-def process_kamar_csv_row(student_data, user):
-    logger.debug(f"Processing KAMAR row: {student_data}")
-    student_id = student_data.get('Number')
-    nsn = student_data.get('NSI')
-    subject = student_data.get('Subject')
-    if not student_id or not subject:
-        logger.error(f"Skipping row due to missing Number or Subject: {student_data}")
-        return
-    logger.debug(f"Processing class: {subject}")
-    class_ = Class.query.filter_by(user_id=user.user_id, class_name=subject).first()
-    if not class_:
-        logger.debug(f"Creating new class: {subject}")
-        class_ = Class(user_id=user.user_id, class_name=subject, class_code=subject)
-        db.session.add(class_)
-    logger.debug(f"Processing student: {student_id}")
-    student = Student.query.get(student_id)
-    if not student:
-        logger.debug(f"Creating new student: {student_id}")
-        student = Student(
-            student_id=student_id,
-            nsn=nsn, 
-            first_name=student_data.get('First Name'),
-            last_name=student_data.get('Last Name'),
-            gender=student_data.get('Gender'),
-            level=student_data.get('Level'),
-            form_class=student_data.get('Tutor'),
-            date_of_birth=student_data.get('Date of Birth'),
-            ethnicity_l1=student_data.get('Ethnicity (L1)'),
-            ethnicity_l2=student_data.get('Ethnicity (L2)'),
-            academic_performance=0,
-            language_proficiency=0 
-        )
-        db.session.add(student)
-    else:
-        logger.debug(f"Updating existing student: {student_id}")
-        student.nsn = nsn
-        student.first_name = student_data.get('First Name')
-        student.last_name = student_data.get('Last Name')
-        student.gender = student_data.get('Gender')
-        student.level = student_data.get('Level')
-        student.form_class = student_data.get('Tutor')
-        student.date_of_birth = student_data.get('Date of Birth')
-        student.ethnicity_l1 = student_data.get('Ethnicity (L1)')
-        student.ethnicity_l2 = student_data.get('Ethnicity (L2)')
-    logger.debug(f"Processing StudentClass relationship: {student_id} - {subject}")
-    student_class = StudentClass.query.filter_by(student_id=student_id, class_id=class_.class_id).first()
-    if not student_class:
-        logger.debug(f"Creating new StudentClass relationship: {student_id} - {subject}")
-        student_class = StudentClass(student_id=student_id, class_id=class_.class_id)
-        db.session.add(student_class)
-
-
-def process_myispl_csv_row(student_data, user):
-    logger.debug(f"Processing MyISPl row: {student_data}")
-    student_id = student_data.get('Student ID')
-    nsn = student_data.get('NSN')
-    if not student_id or not nsn:
-        logger.error(f"Skipping row due to missing Student ID or NSN: {student_data}")
-        return
-    logger.debug(f"Processing student: {student_id}")
-    student = Student.query.get(student_id)
-    if not student:
-        logger.debug(f"Creating new student: {student_id}")
-        student = Student(
-            student_id=student_id,
-            nsn=nsn,
-            first_name=student_data.get('First Name'),
-            last_name=student_data.get('Last Name'),
-            gender=student_data.get('Gender'),
-            level=student_data.get('Level'),
-            form_class=student_data.get('Form Class'),
-            date_of_birth=student_data.get('Date of Birth'),
-            ethnicity_l1=student_data.get('Ethnicity L1'),
-            ethnicity_l2=student_data.get('Ethnicity L2'),
-            academic_performance=ACADEMIC_PERFORMANCE.get(student_data.get('Academic Performance'), 0),
-            language_proficiency=LANGUAGE_PROFICIENCY.get(student_data.get('Language Proficiency'), 0)
-        )
-        db.session.add(student)
-    else:
-        logger.debug(f"Updating existing student: {student_id}")
-        student.nsn = nsn
-        student.first_name = student_data.get('First Name')
-        student.last_name = student_data.get('Last Name')
-        student.gender = student_data.get('Gender')
-        student.level = student_data.get('Level')
-        student.form_class = student_data.get('Form Class')
-        student.date_of_birth = student_data.get('Date of Birth')
-        student.ethnicity_l1 = student_data.get('Ethnicity L1')
-        student.ethnicity_l2 = student_data.get('Ethnicity L2')
-        student.academic_performance = ACADEMIC_PERFORMANCE.get(student_data.get('Academic Performance'), student.academic_performance)
-        student.language_proficiency = LANGUAGE_PROFICIENCY.get(student_data.get('Language Proficiency'), student.language_proficiency)
-    classes_str = student_data.get('Classes', '')
-    logger.debug(f"Processing classes: {classes_str}")
-    if classes_str:
-        classes = classes_str.split(';')
-        for class_info in classes:
-            class_info = class_info.strip()
-            if not class_info:
-                continue
-            class_name, class_code = class_info.split(' (')
-            class_code = class_code.rstrip(')')
-            logger.debug(f"Processing class: {class_name} ({class_code})")
-            class_ = Class.query.filter_by(user_id=user.user_id, class_name=class_name, class_code=class_code).first()
-            if not class_:
-                logger.debug(f"Creating new class: {class_name} ({class_code})")
-                class_ = Class(user_id=user.user_id, class_name=class_name, class_code=class_code)
-                db.session.add(class_)
-            student_class = StudentClass.query.filter_by(student_id=student.student_id, class_id=class_.class_id).first()
-            if not student_class:
-                logger.debug(f"Creating new StudentClass relationship: {student_id} - {class_name}")
-                student_class = StudentClass(student_id=student.student_id, class_id=class_.class_id)
-                db.session.add(student_class)
-
 
 @teacher_bp.route('/export_csv')
 @login_required
@@ -301,8 +188,6 @@ def create_seating_plan():
         data = request.get_json()
         class_id = data.get('class_id')
         template_id = data.get('template_id')
-
-        # Create new seating plan
         new_plan = SeatingPlan(
             class_id=class_id,
             user_id=current_user.user_id
@@ -310,6 +195,13 @@ def create_seating_plan():
         if template_id:
             template = SeatingTemplates.query.get_or_404(template_id)
             new_plan.layout_data = template.layout_data
+        else:
+            student_count = StudentClass.query.filter_by(class_id=class_id).count()
+            layout = data.get('layout', 'portrait')
+            canvas_width = 794 if layout == 'portrait' else 1123
+            canvas_height = 1123 if layout == 'portrait' else 794
+            default_chairs = generate_default_chairs(canvas_width, canvas_height, student_count)
+            new_plan.layout_data = json.dumps({'chairs': default_chairs, 'layoutPreference': layout})
         db.session.add(new_plan)
         db.session.flush()
         if template_id:
@@ -325,7 +217,6 @@ def create_seating_plan():
             )
         db.session.add(classroom_assoc)
         db.session.commit()
-
         return jsonify({
             'success': True,
             'seating_plan_id': new_plan.seating_plan_id
@@ -791,6 +682,144 @@ def get_classroom_templates(classroom_id):
             'success': False,
             'error': 'Failed to fetch templates'
         }), 500
+
+
+def generate_default_chairs(canvas_width, canvas_height, student_count):
+    CHAIR_WIDTH = 120
+    CHAIR_HEIGHT = 120
+    MARGIN = 20
+    max_chairs_per_row = (canvas_width - MARGIN) // (CHAIR_WIDTH + MARGIN)
+    num_rows = (student_count + max_chairs_per_row - 1) // max_chairs_per_row
+    total_width = min(max_chairs_per_row, student_count) * (CHAIR_WIDTH + MARGIN) - MARGIN
+    total_height = num_rows * (CHAIR_HEIGHT + MARGIN) - MARGIN
+    start_x = (canvas_width - total_width) // 2
+    start_y = (canvas_height - total_height) // 2
+    chairs = []
+    chair_id = 1
+    for row in range(num_rows):
+        chairs_in_row = min(max_chairs_per_row, student_count - row * max_chairs_per_row)
+        for col in range(chairs_in_row):
+            chairs.append({
+                'id': chair_id,
+                'x': start_x + col * (CHAIR_WIDTH + MARGIN),
+                'y': start_y + row * (CHAIR_HEIGHT + MARGIN)
+            })
+            chair_id += 1
+    return chairs
+
+
+def process_kamar_csv_row(student_data, user):
+    logger.debug(f"Processing KAMAR row: {student_data}")
+    student_id = student_data.get('Number')
+    nsn = student_data.get('NSI')
+    subject = student_data.get('Subject')
+    if not student_id or not subject:
+        logger.error(f"Skipping row due to missing Number or Subject: {student_data}")
+        return
+    logger.debug(f"Processing class: {subject}")
+    class_ = Class.query.filter_by(user_id=user.user_id, class_name=subject).first()
+    if not class_:
+        logger.debug(f"Creating new class: {subject}")
+        class_ = Class(user_id=user.user_id, class_name=subject, class_code=subject)
+        db.session.add(class_)
+    logger.debug(f"Processing student: {student_id}")
+    student = Student.query.get(student_id)
+    if not student:
+        logger.debug(f"Creating new student: {student_id}")
+        student = Student(
+            student_id=student_id,
+            nsn=nsn, 
+            first_name=student_data.get('First Name'),
+            last_name=student_data.get('Last Name'),
+            gender=student_data.get('Gender'),
+            level=student_data.get('Level'),
+            form_class=student_data.get('Tutor'),
+            date_of_birth=student_data.get('Date of Birth'),
+            ethnicity_l1=student_data.get('Ethnicity (L1)'),
+            ethnicity_l2=student_data.get('Ethnicity (L2)'),
+            academic_performance=0,
+            language_proficiency=0 
+        )
+        db.session.add(student)
+    else:
+        logger.debug(f"Updating existing student: {student_id}")
+        student.nsn = nsn
+        student.first_name = student_data.get('First Name')
+        student.last_name = student_data.get('Last Name')
+        student.gender = student_data.get('Gender')
+        student.level = student_data.get('Level')
+        student.form_class = student_data.get('Tutor')
+        student.date_of_birth = student_data.get('Date of Birth')
+        student.ethnicity_l1 = student_data.get('Ethnicity (L1)')
+        student.ethnicity_l2 = student_data.get('Ethnicity (L2)')
+    logger.debug(f"Processing StudentClass relationship: {student_id} - {subject}")
+    student_class = StudentClass.query.filter_by(student_id=student_id, class_id=class_.class_id).first()
+    if not student_class:
+        logger.debug(f"Creating new StudentClass relationship: {student_id} - {subject}")
+        student_class = StudentClass(student_id=student_id, class_id=class_.class_id)
+        db.session.add(student_class)
+
+
+def process_myispl_csv_row(student_data, user):
+    logger.debug(f"Processing MyISPl row: {student_data}")
+    student_id = student_data.get('Student ID')
+    nsn = student_data.get('NSN')
+    if not student_id or not nsn:
+        logger.error(f"Skipping row due to missing Student ID or NSN: {student_data}")
+        return
+    logger.debug(f"Processing student: {student_id}")
+    student = Student.query.get(student_id)
+    if not student:
+        logger.debug(f"Creating new student: {student_id}")
+        student = Student(
+            student_id=student_id,
+            nsn=nsn,
+            first_name=student_data.get('First Name'),
+            last_name=student_data.get('Last Name'),
+            gender=student_data.get('Gender'),
+            level=student_data.get('Level'),
+            form_class=student_data.get('Form Class'),
+            date_of_birth=student_data.get('Date of Birth'),
+            ethnicity_l1=student_data.get('Ethnicity L1'),
+            ethnicity_l2=student_data.get('Ethnicity L2'),
+            academic_performance=ACADEMIC_PERFORMANCE.get(student_data.get('Academic Performance'), 0),
+            language_proficiency=LANGUAGE_PROFICIENCY.get(student_data.get('Language Proficiency'), 0)
+        )
+        db.session.add(student)
+    else:
+        logger.debug(f"Updating existing student: {student_id}")
+        student.nsn = nsn
+        student.first_name = student_data.get('First Name')
+        student.last_name = student_data.get('Last Name')
+        student.gender = student_data.get('Gender')
+        student.level = student_data.get('Level')
+        student.form_class = student_data.get('Form Class')
+        student.date_of_birth = student_data.get('Date of Birth')
+        student.ethnicity_l1 = student_data.get('Ethnicity L1')
+        student.ethnicity_l2 = student_data.get('Ethnicity L2')
+        student.academic_performance = ACADEMIC_PERFORMANCE.get(student_data.get('Academic Performance'), student.academic_performance)
+        student.language_proficiency = LANGUAGE_PROFICIENCY.get(student_data.get('Language Proficiency'), student.language_proficiency)
+    classes_str = student_data.get('Classes', '')
+    logger.debug(f"Processing classes: {classes_str}")
+    if classes_str:
+        classes = classes_str.split(';')
+        for class_info in classes:
+            class_info = class_info.strip()
+            if not class_info:
+                continue
+            class_name, class_code = class_info.split(' (')
+            class_code = class_code.rstrip(')')
+            logger.debug(f"Processing class: {class_name} ({class_code})")
+            class_ = Class.query.filter_by(user_id=user.user_id, class_name=class_name, class_code=class_code).first()
+            if not class_:
+                logger.debug(f"Creating new class: {class_name} ({class_code})")
+                class_ = Class(user_id=user.user_id, class_name=class_name, class_code=class_code)
+                db.session.add(class_)
+            student_class = StudentClass.query.filter_by(student_id=student.student_id, class_id=class_.class_id).first()
+            if not student_class:
+                logger.debug(f"Creating new StudentClass relationship: {student_id} - {class_name}")
+                student_class = StudentClass(student_id=student.student_id, class_id=class_.class_id)
+                db.session.add(student_class)
 
 
 def allowed_file(filename):
