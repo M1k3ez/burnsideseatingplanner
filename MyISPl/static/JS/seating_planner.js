@@ -74,6 +74,22 @@ $(document).ready(function() {
             box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
             z-index: 100;
         }
+            .toolbar-title-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .edit-title-form {
+            display: flex;
+            align-items: center;
+        }
+
+        .edit-title-form input {
+            width: 300px;
+            height: 31px;
+            padding: 0.25rem 0.5rem;
+        }
     `)
     .appendTo("head");
 
@@ -92,6 +108,55 @@ $(document).ready(function() {
 
         const savedLayout = localStorage.getItem('layoutPreference') || 'portrait';
         applyLayout(savedLayout);
+    }
+
+    function initializeTitleEditing() {
+        const titleContainer = $('.toolbar-title-container');
+        const title = titleContainer.find('.toolbar-title');
+        const editBtn = titleContainer.find('.edit-title-btn');
+        const editForm = titleContainer.find('.edit-title-form');
+        const input = editForm.find('input');
+        const saveBtn = editForm.find('.save-title-btn');
+        const cancelBtn = editForm.find('.cancel-title-btn');
+
+        editBtn.click(function() {
+            title.addClass('d-none');
+            editBtn.addClass('d-none');
+            editForm.removeClass('d-none');
+            input.focus();
+        });
+
+        saveBtn.click(function() {
+            const newTitle = input.val().trim();
+            if (!newTitle) return;
+
+            $.ajax({
+                url: `/teacher/api/seating_plan/${plan_id}/name`,
+                method: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify({ name: newTitle }),
+                success: function(response) {
+                    if (response.success) {
+                        title.text(newTitle);
+                        title.removeClass('d-none');
+                        editBtn.removeClass('d-none');
+                        editForm.addClass('d-none');
+                    } else {
+                        alert('Failed to save the new name');
+                    }
+                },
+                error: function() {
+                    alert('Failed to save the new name');
+                }
+            });
+        });
+
+        cancelBtn.click(function() {
+            title.removeClass('d-none');
+            editBtn.removeClass('d-none');
+            editForm.addClass('d-none');
+            input.val(title.text());
+        });
     }
 
     function applyLayout(layout) {
@@ -612,6 +677,7 @@ $(document).ready(function() {
     initializeData();
     initializeLayout();
     initializeChairs();
+    initializeTitleEditing();
 
     $("#saveChangesBtn").off('click').on('click', saveLayout);
 });

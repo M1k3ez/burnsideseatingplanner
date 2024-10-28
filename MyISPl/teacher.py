@@ -122,7 +122,6 @@ def import_csv():
     return render_template('teacher/view_students.html', teacher=user)
 
 
-
 @teacher_bp.route('/export_csv')
 @login_required
 def export_csv():
@@ -164,6 +163,7 @@ def export_csv():
 @teacher_bp.route('/seating_plans')
 @login_required
 def view_seating_plans():
+    """Render the seating plans view page"""
     if current_user.role != USER_ROLE["Teacher"]:
         flash("Access denied: You are not authorized to view seating plans.", "error")
         return redirect(url_for('teacher.toolbox'))
@@ -171,13 +171,18 @@ def view_seating_plans():
         .join(Class)
         .filter(SeatingPlan.user_id == current_user.user_id)
         .options(
-            joinedload(SeatingPlan.class_)
+            joinedload(SeatingPlan.class_),
+            joinedload(SeatingPlan.classroom_seating_plans).joinedload(ClassroomSeatingPlan.classroom)
         )
-        .order_by(Class.class_name)
+        .order_by(SeatingPlan.date_created.desc())
         .all())
+    classes = Class.query.filter_by(user_id=current_user.user_id).order_by(Class.class_name).all()
+    classrooms = Classroom.query.order_by(Classroom.block_name, Classroom.room_number).all()
     return render_template(
         'teacher/seating_plans.html',
-        seating_plans=seating_plans
+        seating_plans=seating_plans,
+        classes=classes,
+        classrooms=classrooms
     )
 
 
@@ -188,9 +193,12 @@ def create_seating_plan():
         data = request.get_json()
         class_id = data.get('class_id')
         template_id = data.get('template_id')
+        class_ = Class.query.get_or_404(class_id)
+        default_name = f"Seating Plan - {class_.class_name}"
         new_plan = SeatingPlan(
             class_id=class_id,
-            user_id=current_user.user_id
+            user_id=current_user.user_id,
+            seating_plan_name=default_name  # Set default name
         )
         if template_id:
             template = SeatingTemplates.query.get_or_404(template_id)
@@ -298,6 +306,31 @@ def delete_seating_plan(plan_id):
         db.session.rollback()
         flash(f'Error deleting seating plan: {str(e)}', 'error')
     return redirect(url_for('teacher.view_seating_plans'))
+
+
+@teacher_bp.route('/api/seating_plan/<int:plan_id>/name', methods=['PUT'])
+@login_required
+def update_seating_plan_name(plan_id):
+    if current_user.role != USER_ROLE["Teacher"]:
+        return jsonify({'error': 'Unauthorized access'}), 403    
+    try:
+        seating_plan = SeatingPlan.query.get_or_404(plan_id)
+        if str(seating_plan.user_id) != str(current_user.user_id):
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+        data = request.get_json()
+        new_name = data.get('name')
+        if not new_name:
+            return jsonify({'success': False, 'error': 'Name cannot be empty'}), 400
+        seating_plan.seating_plan_name = new_name
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'name': new_name
+        })
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error updating seating plan name: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @teacher_bp.route('/api/student/<int:student_id>/notes', methods=['GET'])

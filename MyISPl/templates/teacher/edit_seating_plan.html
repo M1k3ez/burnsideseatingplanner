@@ -4,7 +4,15 @@
     <!-- Top Toolbar -->
     <div class="toolbar">
         <div class="toolbar-left">
-            <h2 class="toolbar-title">{{ seating_plan.class_.class_name }}</h2>
+            <div class="toolbar-title-container">
+                <h2 class="toolbar-title">{{ seating_plan.seating_plan_name or seating_plan.class_.class_name }}</h2>
+                <button class="btn btn-sm btn-outline-secondary edit-title-btn ms-2">Change name</button>
+                <div class="edit-title-form d-none">
+                    <input type="text" class="form-control" value="{{ seating_plan.seating_plan_name or seating_plan.class_.class_name }}">
+                    <button class="btn btn-sm btn-success save-title-btn ms-2">Save</button>
+                    <button class="btn btn-sm btn-outline-secondary cancel-title-btn ms-2">Cancel</button>
+                </div>
+            </div>
             <div class="toolbar-controls">
                 <div class="btn-group me-3">
                     <button type="button" class="btn btn-outline-primary" id="layoutPortrait">A4 Portrait</button>

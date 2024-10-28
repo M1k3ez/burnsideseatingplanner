@@ -205,6 +205,7 @@ class SeatingTemplates(db.Model):
     __tablename__ = 'SEATING_TEMPLATES'
     seating_template_id = db.Column(
         db.Integer, primary_key=True, autoincrement=True)
+    seating_template_name = db.Column(db.String())
     classroom_id = db.Column(
         db.String(), ForeignKey('CLASSROOM.classroom_id'), nullable=False)
     user_id = db.Column(
@@ -222,6 +223,7 @@ class SeatingPlan(db.Model):
     __tablename__ = 'SEATING_PLAN'
     seating_plan_id = db.Column(
         db.Integer, primary_key=True, autoincrement=True)
+    seating_plan_name = db.Column(db.String())
     class_id = db.Column(
         db.Integer, ForeignKey('CLASS.class_id'), nullable=False)
     user_id = db.Column(

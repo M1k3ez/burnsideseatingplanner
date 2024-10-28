@@ -14,24 +14,24 @@
         <div class="col">
             <div class="card h-100">
                 <div class="card-body">
-                    <h5 class="card-title">{{ plan.class_.class_name }}</h5>
-                    <p class="card-text text-muted">{{ plan.class_.class_code }}</p>
+                    <a href="{{ url_for('teacher.edit_seating_plan', plan_id=plan.seating_plan_id) }}" 
+                       class="h5 card-title text-decoration-none d-block mb-2">
+                        {{ plan.seating_plan_name or 'Untitled Plan' }}
+                    </a>
+                    <p class="card-text small text-muted mb-1">Class: {{ plan.class_.class_name }}</p>
+                    <p class="card-text small text-muted mb-2">Room: {{ plan.classroom_seating_plans[0].classroom.classroom_id }}</p>
                     <p class="card-text">
                         <small class="text-muted">Created: {{ plan.date_created.strftime('%Y-%m-%d') }}</small>
                     </p>
                 </div>
                 <div class="card-footer bg-transparent border-top-0">
                     <div class="btn-group w-100" role="group">
-                        <a href="{{ url_for('teacher.view_seating_plans', plan_id=plan.seating_plan_id) }}" 
-                           class="btn btn-outline-primary">
-                            <i class="fas fa-eye me-1"></i> View
-                        </a>
                         <a href="{{ url_for('teacher.edit_seating_plan', plan_id=plan.seating_plan_id) }}" 
                            class="btn btn-outline-secondary">
                             <i class="fas fa-edit me-1"></i> Edit
                         </a>
                         <button type="button" class="btn btn-outline-danger" 
-                                onclick="confirmDelete({{ plan.seating_plan_id }}, '{{ plan.class_.class_name }}')">
+                                onclick="confirmDelete({{ plan.seating_plan_id }}, '{{ plan.seating_plan_name or 'Untitled Plan' }}')">
                             <i class="fas fa-trash-alt me-1"></i> Delete
                         </button>
                     </div>
@@ -47,6 +47,54 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Create New Seating Plan Modal -->
+<div class="modal fade" id="newPlanModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Seating Plan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="seatingPlanForm">
+                    <div class="mb-3">
+                        <label for="classSelect" class="form-label">Select Class</label>
+                        <select class="form-select" id="classSelect" required>
+                            <option value="">Choose a class...</option>
+                            {% for class in classes %}
+                            <option value="{{ class.class_id }}">{{ class.class_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="classroomSelect" class="form-label">Select Classroom</label>
+                        <select class="form-select" id="classroomSelect" required>
+                            <option value="">Choose a classroom...</option>
+                            {% for classroom in classrooms %}
+                            <option value="{{ classroom.classroom_id }}">{{ classroom.classroom_id }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="template-select-container mb-3 d-none">
+                        <label for="templateSelect" class="form-label">Use Template (Optional)</label>
+                        <select class="form-select" id="templateSelect">
+                            <option value="">No template</option>
+                        </select>
+                    </div>
+
+                    <div id="errorMessage" class="alert alert-danger d-none"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="createPlanBtn">Create Plan</button>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -55,7 +103,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                Are you sure you want to delete the seating plan for <span id="deletePlanName"></span>?
+                Are you sure you want to delete "<span id="deletePlanName"></span>"?
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -66,12 +114,7 @@
         </div>
     </div>
 </div>
-<script>
-    function confirmDelete(planId, className) {
-        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        document.getElementById('deletePlanName').textContent = className;
-        document.getElementById('deleteForm').action = `/teacher/seating_plan/${planId}/delete`;
-        deleteModal.show();
-    }
-    </script>
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/seating_plans.js') }}"></script>
+{% endblock %}
 {% endblock %}
