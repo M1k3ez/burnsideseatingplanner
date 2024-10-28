@@ -316,11 +316,12 @@ class UserSeatingPlan(db.Model):
 
 class StudentShoutoutList(db.Model):
     __tablename__ = 'STUDENTSHOUT_LIST'
-    shoutout_id = db.Column(
-        db.Integer, ForeignKey('SHOUTOUT_LIST.shoutout_id'), primary_key=True)
-    user_id = db.Column(db.Integer, ForeignKey('USER.user_id'))
-    class_id = db.Column(db.Integer, ForeignKey('CLASS.class_id'))
-    student_id = db.Column(db.Integer, ForeignKey('STUDENT.student_id'))
+    student_shoutout_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    shoutout_id = db.Column(db.Integer, db.ForeignKey('SHOUTOUT_LIST.shoutout_id'))
+    user_id = db.Column(db.String(50), db.ForeignKey('USER.user_id'))
+    class_id = db.Column(db.Integer, db.ForeignKey('CLASS.class_id'))
+    student_id = db.Column(db.Integer, db.ForeignKey('STUDENT.student_id'))
+    date_assigned = db.Column(db.DateTime, default=datetime.now(timezone.utc))
 
     shoutout = relationship(
         'ShoutoutList', back_populates='student_shoutouts', lazy='subquery')

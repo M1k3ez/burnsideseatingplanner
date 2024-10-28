@@ -1,6 +1,6 @@
 $(document).ready(function() {
     // Constants
-    const gridSize = 30;
+    const gridSize = 10;
     const CHAIR_WIDTH = 110;
     const CHAIR_HEIGHT = 105;
 
@@ -631,7 +631,22 @@ $(document).ready(function() {
             reorderStudentCards();
         } else {
             alert('This chair is already occupied.');
+            updateChairDroppable();
         }
+    }
+
+    function updateChairDroppable() {
+        $('.chair.occupied').droppable({
+            accept: '.shoutout',
+            drop: function (event, ui) {
+                const shoutoutId = ui.draggable.data('shoutout-id');
+                const chairId = $(this).data('chair-id');
+                const chair = chairs.find(c => c.id === chairId);
+                if (chair && chair.studentId) {
+                    assignShoutoutToStudent(shoutoutId, chair.studentId);
+                }
+            }
+        });
     }
 
     function saveLayout() {
@@ -688,6 +703,89 @@ $(document).ready(function() {
         if (text.length <= maxLength) return text;
         return text.substring(0, maxLength) + '...';
     }
+    function fetchShoutoutCategories() {
+        return $.ajax({
+            url: '/teacher/api/shoutouts/categories',
+            method: 'GET'
+        });
+    }
+
+    function renderShoutouts(shoutouts) {
+        const shoutoutList = $('#shoutout-list');
+        shoutoutList.empty();
+    
+        shoutouts.forEach(category => {
+            const categoryDiv = $('<div>')
+                .addClass('shoutout-category')
+                .text(category.category);
+            shoutoutList.append(categoryDiv);
+    
+            category.messages.forEach(message => {
+                const shoutoutDiv = $('<div>')
+                    .addClass('shoutout')
+                    .attr('data-shoutout-id', message.shoutout_id)
+                    .text(message.message);
+                shoutoutList.append(shoutoutDiv);
+            });
+        });
+        setupShoutoutDragging();
+    }
+
+    function setupShoutoutDragging() {
+        $('.shoutout').draggable({
+            helper: 'clone',
+            revert: 'invalid',
+            revertDuration: 200,
+            zIndex: 1000,
+            start: function() {
+                $(this).addClass('dragging');
+            },
+            stop: function() {
+                $(this).removeClass('dragging');
+            }
+        });
+    
+        // Update to make all occupied chairs droppable
+        updateChairDroppable();
+    }
+
+        $('.chair.occupied').droppable({
+            accept: '.shoutout',
+            drop: function (event, ui) {
+                const shoutoutId = ui.draggable.data('shoutout-id');
+                const chairId = $(this).data('chair-id');
+                const chair = chairs.find(c => c.id === chairId);
+                if (chair && chair.studentId) {
+                    assignShoutoutToStudent(shoutoutId, chair.studentId);
+                }
+            }
+        });
+        function assignShoutoutToStudent(shoutoutId, studentId) {
+            const classId = $('#canvas').data('class-id');
+            $.ajax({
+                url: '/teacher/api/shoutouts/assign',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    shoutout_id: shoutoutId,
+                    student_id: studentId,
+                    class_id: classId
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        // Show success feedback
+                        const chair = $(`.chair[data-student-id="${studentId}"]`);
+                        chair.addClass('shoutout-success');
+                        setTimeout(() => chair.removeClass('shoutout-success'), 1500);
+                    } else {
+                        alert(`Failed to assign shoutout: ${response.error}`);
+                    }
+                },
+                error: function() {
+                    alert('Error assigning shoutout. Please try again.');
+                }
+            });
+        }
 
     function showStudentDetailsModal(studentId) {
         $.ajax({
@@ -701,81 +799,111 @@ $(document).ready(function() {
                         success: function(notesResponse) {
                             const student = studentResponse;
                             const notes = notesResponse.notes || [];
-                            const modalHtml = `
-                                <div class="modal fade" id="studentDetailsModal" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog modal-lg">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Student Details: ${student.first_name} ${student.last_name}</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <div class="row">
-                                                    <div class="col-md-6">
-                                                        <h6 class="mb-3">Personal Information</h6>
-                                                        <p><strong>Student ID:</strong> ${student.student_id}</p>
-                                                        <p><strong>NSN:</strong> ${student.nsn}</p>
-                                                        <p><strong>Gender:</strong> ${student.gender}</p>
-                                                        <p><strong>Date of Birth:</strong> ${student.date_of_birth || 'Not specified'}</p>
-                                                        <p><strong>Form Class:</strong> ${student.form_class || 'Not specified'}</p>
-                                                        <p><strong>Level:</strong> ${student.level || 'Not specified'}</p>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <h6 class="mb-3">Academic Information</h6>
-                                                        <p><strong>Academic Performance:</strong> ${student.academic_performance}</p>
-                                                        <p><strong>Language Proficiency:</strong> ${student.language_proficiency}</p>
-                                                        <p><strong>Ethnicity (L1):</strong> ${student.ethnicity_l1 || 'Not specified'}</p>
-                                                        <p><strong>Ethnicity (L2):</strong> ${student.ethnicity_l2 || 'Not specified'}</p>
-                                                        ${student.sac_status && student.sac_status.length > 0 ? 
-                                                            `<p><strong>SAC Status:</strong> ${student.sac_status.join(', ')}</p>` : 
-                                                            ''}
-                                                    </div>
-                                                </div>
-                                                <div class="row mt-4">
-                                                    <div class="col-12">
-                                                        <h6 class="mb-3">Notes History</h6>
-                                                        ${notes.length > 0 ? `
-                                                            <div class="table-responsive">
-                                                                <table class="table table-hover">
-                                                                    <thead>
-                                                                        <tr>
-                                                                            <th>Date</th>
-                                                                            <th>Note</th>
-                                                                            <th>Teacher</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        ${notes.map(note => `
-                                                                            <tr>
-                                                                                <td>${new Date(note.date_created).toLocaleDateString()}</td>
-                                                                                <td>${note.details}</td>
-                                                                                <td>${note.teacher_name}</td>
-                                                                            </tr>
-                                                                        `).join('')}
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                        ` : '<p>No notes available</p>'}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+
+                            // Fetch student shoutouts
+                            $.ajax({
+                                url: `/teacher/api/student/${studentId}/shoutouts`,
+                                method: 'GET',
+                                success: function(shoutoutsResponse) {
+                                    const shoutouts = shoutoutsResponse.shoutouts || [];
+                                    const shoutoutSection = `
+                                        <div class="row mt-4">
+                                            <div class="col-12">
+                                                <h6 class="mb-3">Shoutouts</h6>
+                                                ${shoutouts.length > 0 ? `
+                                                    <ul>
+                                                        ${shoutouts.map(shoutout => `
+                                                            <li>
+                                                                <strong>${shoutout.category}:</strong> ${shoutout.message}
+                                                            </li>
+                                                        `).join('')}
+                                                    </ul>
+                                                ` : '<p>No shoutouts available</p>'}
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            `;
-    
-                            // Remove any existing modal
-                            $('#studentDetailsModal').remove();
-                            
-                            // Add new modal to page
-                            $('body').append(modalHtml);
-                            
-                            // Show the modal
-                            const modal = new bootstrap.Modal(document.getElementById('studentDetailsModal'));
-                            modal.show();
+                                    `;
+
+                                    const modalHtml = `
+                                        <div class="modal fade" id="studentDetailsModal" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-lg">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Student Details: ${student.first_name} ${student.last_name}</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <div class="row">
+                                                            <div class="col-md-6">
+                                                                <h6 class="mb-3">Personal Information</h6>
+                                                                <p><strong>Student ID:</strong> ${student.student_id}</p>
+                                                                <p><strong>NSN:</strong> ${student.nsn}</p>
+                                                                <p><strong>Gender:</strong> ${student.gender}</p>
+                                                                <p><strong>Date of Birth:</strong> ${student.date_of_birth || 'Not specified'}</p>
+                                                                <p><strong>Form Class:</strong> ${student.form_class || 'Not specified'}</p>
+                                                                <p><strong>Level:</strong> ${student.level || 'Not specified'}</p>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <h6 class="mb-3">Academic Information</h6>
+                                                                <p><strong>Academic Performance:</strong> ${student.academic_performance}</p>
+                                                                <p><strong>Language Proficiency:</strong> ${student.language_proficiency}</p>
+                                                                <p><strong>Ethnicity (L1):</strong> ${student.ethnicity_l1 || 'Not specified'}</p>
+                                                                <p><strong>Ethnicity (L2):</strong> ${student.ethnicity_l2 || 'Not specified'}</p>
+                                                                ${student.sac_status && student.sac_status.length > 0 ? 
+                                                                    `<p><strong>SAC Status:</strong> ${student.sac_status.join(', ')}</p>` : 
+                                                                    ''}
+                                                            </div>
+                                                        </div>
+                                                        <div class="row mt-4">
+                                                            <div class="col-12">
+                                                                <h6 class="mb-3">Notes History</h6>
+                                                                ${notes.length > 0 ? `
+                                                                    <div class="table-responsive">
+                                                                        <table class="table table-hover">
+                                                                            <thead>
+                                                                                <tr>
+                                                                                    <th>Date</th>
+                                                                                    <th>Note</th>
+                                                                                    <th>Teacher</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                ${notes.map(note => `
+                                                                                    <tr>
+                                                                                        <td>${new Date(note.date_created).toLocaleDateString()}</td>
+                                                                                        <td>${note.details}</td>
+                                                                                        <td>${note.teacher_name}</td>
+                                                                                    </tr>
+                                                                                `).join('')}
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                ` : '<p>No notes available</p>'}
+                                                            </div>
+                                                        </div>
+                                                        ${shoutoutSection}
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+            
+                                    // Remove any existing modal
+                                    $('#studentDetailsModal').remove();
+                                    
+                                    // Add new modal to page
+                                    $('body').append(modalHtml);
+                                    
+                                    // Show the modal
+                                    const modal = new bootstrap.Modal(document.getElementById('studentDetailsModal'));
+                                    modal.show();
+                                },
+                                error: function() {
+                                    console.error('Failed to fetch student shoutouts');
+                                }
+                            });
                         },
                         error: function() {
                             alert('Failed to fetch student notes');
@@ -790,6 +918,7 @@ $(document).ready(function() {
             }
         });
     }
+
     $(document).off('mousedown', '.chair').on('mousedown', '.chair', function(e) {
         if (isDragging) return;
         
@@ -855,6 +984,24 @@ $(document).ready(function() {
     initializeLayout();
     initializeChairs();
     initializeTitleEditing();
-
+        
+    fetchShoutoutCategories().then(function(response) {
+        console.log("Fetched shoutout categories:", response);
+        if (response.success) {
+            renderShoutouts(response.categories);
+            setupShoutoutDragging(); // Set up dragging after rendering
+        } else {
+            console.error('Failed to fetch shoutout categories');
+        }
+    });
+    $('body').on('chairsUpdated', function() {
+        console.log("Chairs updated, reinitializing shoutout dragging");
+        setupShoutoutDragging();
+    });
     $("#saveChangesBtn").off('click').on('click', saveLayout);
+    window.onerror = function(msg, url, lineNo, columnNo, error) {
+        console.error('Error:', {msg, url, lineNo, columnNo, error});
+        showToast('An error occurred. Check console for details.', 'error');
+        return false;
+    };    
 });

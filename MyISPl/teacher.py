@@ -1,10 +1,10 @@
-# At the top, after imports
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, send_file
 from flask_login import login_required, current_user
-from models import db, User, Class, Student, StudentClass, USER_ROLE, Sac, SACStudent, ACADEMIC_PERFORMANCE, LANGUAGE_PROFICIENCY, Classroom, SeatingPlan, UserSeatingPlan, ClassroomSeatingPlan, Note, SeatingTemplates
+from models import db, User, Class, Student, StudentClass, USER_ROLE, Sac, SACStudent, ACADEMIC_PERFORMANCE, LANGUAGE_PROFICIENCY, Classroom, SeatingPlan, UserSeatingPlan, ClassroomSeatingPlan, Note, SeatingTemplates, ShoutoutList, StudentShoutoutList
 from sqlalchemy.orm import joinedload
 from io import StringIO, BytesIO
 from sockets import socketio
+from datetime import datetime, timezone
 import csv
 import logging
 import json
@@ -264,13 +264,23 @@ def edit_seating_plan(plan_id):
         try:
             layout_data = json.loads(seating_plan.layout_data)
         except json.JSONDecodeError:
-            layout_data = []      
+            layout_data = []
+    shoutout_categories = {}
+    shoutouts = ShoutoutList.query.all()
+    for shoutout in shoutouts:
+        if shoutout.shoutout_category not in shoutout_categories:
+            shoutout_categories[shoutout.shoutout_category] = []
+        shoutout_categories[shoutout.shoutout_category].append({
+            'shoutout_id': shoutout.shoutout_id,
+            'message': shoutout.shoutout_message
+        })
     return render_template(
         'teacher/edit_seating_plan.html',
         seating_plan=seating_plan,
         students=serialized_students,
         layout_data=layout_data,
-        classroom=classroom
+        classroom=classroom,
+        shoutout_categories=shoutout_categories
     )
 
 
@@ -937,6 +947,113 @@ def process_myispl_csv_row(student_data, user):
                 logger.debug(f"Creating new StudentClass relationship: {student_id} - {class_name}")
                 student_class = StudentClass(student_id=student.student_id, class_id=class_.class_id)
                 db.session.add(student_class)
+
+
+@teacher_bp.route('/api/student/<int:student_id>/shoutouts', methods=['GET'])
+@login_required
+def get_student_shoutouts(student_id):
+    """Get all shoutouts assigned to a student"""
+    if current_user.role != USER_ROLE["Teacher"]:
+        return jsonify({'error': 'Unauthorized access'}), 403
+    try:
+        shoutouts = (StudentShoutoutList.query
+            .join(ShoutoutList)
+            .filter(StudentShoutoutList.student_id == student_id)
+            .filter(StudentShoutoutList.user_id == current_user.user_id)
+            .all())
+        return jsonify({
+            'success': True,
+            'shoutouts': [
+                {
+                    'id': shoutout.shoutout.shoutout_id,
+                    'category': shoutout.shoutout.shoutout_category,
+                    'message': shoutout.shoutout.shoutout_message
+                }
+                for shoutout in shoutouts
+            ]
+        })
+    except Exception as e:
+        logger.error(f"Error fetching student shoutouts: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to fetch student shoutouts'
+        }), 500
+
+
+@teacher_bp.route('/api/shoutouts/categories')
+def get_shoutout_categories():
+    shoutouts = ShoutoutList.query.all()
+    categories_dict = {}
+    for shoutout in shoutouts:
+        if shoutout.shoutout_category not in categories_dict:
+            categories_dict[shoutout.shoutout_category] = []
+        categories_dict[shoutout.shoutout_category].append({
+            'shoutout_id': shoutout.shoutout_id,
+            'message': shoutout.shoutout_message
+        })
+    categories = [
+        {
+            'category': category,
+            'messages': messages
+        }
+        for category, messages in categories_dict.items()
+    ]
+    return jsonify({
+        'success': True,
+        'categories': categories
+    })
+
+
+@teacher_bp.route('/api/shoutouts/assign', methods=['POST'])
+@login_required
+def assign_shoutout():
+    try:
+        data = request.get_json()
+        logger.debug(f"Received shoutout assignment data: {data}")
+        shoutout_id = data.get('shoutout_id')
+        student_id = data.get('student_id')
+        class_id = data.get('class_id')
+        if not all([shoutout_id, student_id, class_id]):
+            logger.error("Missing required fields in shoutout assignment")
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+        shoutout_id = int(shoutout_id)
+        student_id = int(student_id)
+        class_id = int(class_id)
+        shoutout = ShoutoutList.query.get(shoutout_id)
+        student = Student.query.get(student_id)
+        class_ = Class.query.get(class_id)
+        if not all([shoutout, student, class_]):
+            logger.error("One or more entities not found")
+            return jsonify({'success': False, 'error': 'Invalid shoutout, student, or class ID'}), 404
+        current_time = datetime.now(timezone.utc)
+        new_assignment = StudentShoutoutList(
+            shoutout_id=shoutout_id,
+            student_id=student_id,
+            class_id=class_id,
+            user_id=current_user.user_id,
+            date_assigned=current_time
+        )
+        logger.debug(f"Attempting to add new shoutout assignment: {new_assignment.__dict__}")
+        db.session.add(new_assignment)
+        db.session.commit()
+        logger.info(f"Successfully assigned shoutout {shoutout_id} to student {student_id}")
+        return jsonify({
+            'success': True, 
+            'message': 'Assigned successfully',
+            'assignment': {
+                'shoutout_id': shoutout_id,
+                'student_id': student_id,
+                'class_id': class_id,
+                'date_assigned': current_time.isoformat()
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error in assign_shoutout: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False, 
+            'error': f'Failed to assign shoutout: {str(e)}'
+        }), 500
 
 
 def allowed_file(filename):

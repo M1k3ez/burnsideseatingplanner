@@ -25,7 +25,9 @@
             </div>
         </div>
     </div>
+
     <div class="side-toolbar">
+        <!-- Components Section -->
         <div class="side-toolbar-section">
             <h5 class="side-toolbar-title">Components</h5>
             <div class="chair-template" id="new-chair" title="Drag to add a new chair">
@@ -33,6 +35,7 @@
             </div>
         </div>
         
+        <!-- Students Section -->
         <div class="side-toolbar-section flex-grow-1">
             <h5 class="side-toolbar-title">Students</h5>
             <div class="student-grid">
@@ -57,15 +60,34 @@
         </div>
     </div>
 
+    <!-- New div for Shoutouts Toolbar -->
+    <div class="shoutouts-toolbar">
+        <h5 class="side-toolbar-title">Shoutouts</h5>
+        <div id="shoutout-list" class="shoutout-list">
+            {% for category in shoutout_categories %}
+                <div class="shoutout-category">{{ category.category }}</div>
+                {% for message in category.messages %}
+                    <div class="shoutout" 
+                         data-shoutout-id="{{ message.shoutout_id }}"
+                         draggable="true">
+                        {{ message.message }}
+                    </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </div>
+
     <!-- Main Canvas Area -->
     <div class="canvas-wrapper">
         <div class="grid-canvas" id="canvas" 
              data-chairs='{{ layout_data | tojson | safe }}' 
              data-students='{{ students | tojson | safe }}' 
-             data-plan-id='{{ seating_plan.seating_plan_id }}'>
+             data-plan-id='{{ seating_plan.seating_plan_id }}'
+             data-class-id='{{ seating_plan.class_id }}'>
         </div>
     </div>
 
+    <!-- Instructions Modal -->
     <div class="modal fade" id="instructionsModal" tabindex="-1" aria-labelledby="instructionsModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -78,7 +100,8 @@
                         <li class="mb-2">• Drag the chair (🪑) from the Components panel onto the canvas.</li>
                         <li class="mb-2">• Drag a student card onto an empty chair to assign.</li>
                         <li class="mb-2">• Drag chairs around to reposition.</li>
-                        <li class="mb-2">• Right-click on a chair to delete it or unassign student.</li>
+                        <li class="mb-2">• Drag shoutouts onto occupied chairs to assign them.</li>
+                        <li class="mb-2">• Right-click on a chair to delete it, unassign student, or view details.</li>
                         <li class="mb-2">• Click "Save Changes" to save the layout.</li>
                     </ul>
                 </div>
@@ -88,16 +111,73 @@
             </div>
         </div>
     </div>
-    
-{% endblock %}
+</div>
+
+<style>
+.shoutout {
+    padding: 8px 12px;
+    margin: 4px 0;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    cursor: move;
+    transition: background-color 0.2s;
+    z-index:1;
+}
+
+.shoutout:hover {
+    background: #e9ecef;
+}
+
+.shoutout-category {
+    font-weight: bold;
+    margin: 12px 0 8px 0;
+    padding: 4px 0;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.shoutout.ui-draggable-dragging {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 10000000000000 ;
+}
+
+.chair.occupied.ui-droppable-hover {
+    border: 2px solid #28a745;
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+}
+
+.shoutouts-toolbar {
+    position: fixed;
+    left: 0;
+    top: 100px;
+    bottom: 0;
+    width: 200px;
+    background: white;
+    border-right: 1px solid #ccc;
+    padding: 20px;
+    overflow-y: none;
+    z-index: 0;
+    box-sizing: border-box;
+}
+
+.canvas-wrapper {
+    margin-left: 200px;
+    padding-left: 20px;
+}
+
+.toolbar {
+    padding-left: 220px;
+}
+
+.side-toolbar {
+    padding-left: 20px;
+}
+</style>
+
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    $(document).ready(function() {
-        $("#viewInstructionsBtn").click(function() {
-            $("#instructionsModal").modal('show');
-        });
-    });
-</script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js"></script>
 <script src="{{ url_for('static', filename='js/seating_planner.js') }}"></script>
+{% endblock %}
 {% endblock %}
