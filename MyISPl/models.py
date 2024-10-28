@@ -73,6 +73,9 @@ class User(UserMixin, db.Model):
     seating_plans = association_proxy('user_seating_plans', 'seating_plan')
     seating_templates = relationship(
         'SeatingTemplates', back_populates='user', cascade='all, delete-orphan')
+    student_shoutouts = relationship(
+        'StudentShoutoutList', back_populates='user',
+        cascade='all, delete-orphan')
 
 
 class Sac(db.Model):
@@ -140,6 +143,9 @@ class Student(db.Model):
         'Note', back_populates='student', cascade='all, delete-orphan')
     sac_students = relationship(
         'SACStudent', back_populates='student', cascade='all, delete-orphan')
+    student_shoutouts = relationship(
+        'StudentShoutoutList', back_populates='student',
+        cascade='all, delete-orphan')
 
 
 class Class(db.Model):
@@ -157,6 +163,9 @@ class Class(db.Model):
         'StudentClass', back_populates='class_', cascade='all, delete-orphan')
     sac_students = relationship(
         'SACStudent', back_populates='class_', cascade='all, delete-orphan')
+    student_shoutouts = relationship(
+        'StudentShoutoutList', back_populates='class_',
+        cascade='all, delete-orphan')
 
 
 class Classroom(db.Model):
@@ -245,6 +254,16 @@ class SeatingPlan(db.Model):
     classrooms = association_proxy('classroom_seating_plans', 'classroom')
 
 
+class ShoutoutList(db.Model):
+    __tablename__ = 'SHOUTOUT_LIST'
+    shoutout_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    shoutout_category = db.Column(db.String()) 
+    shoutout_message = db.Column(db.String())
+
+    student_shoutouts = relationship(
+        'StudentShoutoutList', back_populates='shoutout', cascade='all, delete-orphan')
+
+
 class StudentClass(db.Model):
     """
     Join table for Student and Class.
@@ -291,8 +310,7 @@ class UserSeatingPlan(db.Model):
         db.String(), ForeignKey('USER.user_id'), nullable=False,
         primary_key=True)
     seating_plan_id = db.Column(
-        db.Integer, ForeignKey('SEATING_PLAN.seating_plan_id'), nullable=False,
-        primary_key=True)
+        db.Integer, ForeignKey('SEATING_PLAN.seating_plan_id'), nullable=False,)
 
     user = relationship(
         'User', back_populates='user_seating_plans',
@@ -300,3 +318,21 @@ class UserSeatingPlan(db.Model):
     seating_plan = relationship(
         'SeatingPlan', back_populates='user_seating_plans',
         lazy='subquery')
+
+
+class StudentShoutoutList(db.Model):
+    __tablename__ = 'STUDENTSHOUT_LIST'
+    shoutout_id = db.Column(
+        db.Integer, ForeignKey('SHOUTOUT_LIST.shoutout_id'), primary_key=True)
+    user_id = db.Column(db.Integer, ForeignKey('USER.user_id'))
+    class_id = db.Column(db.Integer, ForeignKey('CLASS.class_id'))
+    student_id = db.Column(db.Integer, ForeignKey('STUDENT.student_id'))
+
+    shoutout = relationship(
+        'ShoutoutList', back_populates='student_shoutouts', lazy='subquery')
+    user = relationship(
+        'User', back_populates='student_shoutouts', lazy='subquery')
+    class_ = relationship(
+        'Class', back_populates='student_shoutouts', lazy='subquery')
+    student = relationship(
+        'Student', back_populates='student_shoutouts', lazy='subquery')
