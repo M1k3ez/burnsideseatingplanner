@@ -1,6 +1,6 @@
 $(document).ready(function() {
     // Constants
-    const gridSize = 5;
+    const gridSize = 30;
     const CHAIR_WIDTH = 110;
     const CHAIR_HEIGHT = 105;
 
