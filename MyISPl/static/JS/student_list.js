@@ -299,26 +299,32 @@ document.addEventListener('DOMContentLoaded', function() {
             data.students.forEach(student => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${student.student_id}</td>
-                    <td>
-                        <img src="${student.photo || '/static/images/default_avatar.png'}" 
-                             alt="${student.student_id}" 
-                             class="img-thumbnail" 
-                             style="max-width: 50px;">
-                    </td>
-                    <td>${student.first_name} ${student.last_name}</td>
-                    <td>${student.gender}</td>
-                    <td>${student.sac_status || 'No SAC conditions'}</td>
-                    <td class="performance-cell">${student.academic_performance}</td>
-                    <td class="proficiency-cell">${student.language_proficiency}</td>
-                    <td>
+                <td>${student.student_id}</td>
+                <td>
+                    <img src="${student.photo || '/static/images/default_avatar.png'}" 
+                         alt="${student.student_id}" 
+                         class="img-thumbnail" 
+                         style="max-width: 50px;">
+                </td>
+                <td>${student.first_name} ${student.last_name}</td>
+                <td>${student.gender}</td>
+                <td>${student.sac_status || 'No SAC conditions'}</td>
+                <td class="performance-cell">${student.academic_performance}</td>
+                <td class="proficiency-cell">${student.language_proficiency}</td>
+                <td>
+                    <div class="btn-group">
                         <button type="button" class="btn btn-primary btn-sm" 
                                 data-bs-toggle="modal" 
                                 data-bs-target="#studentNoteModal${student.student_id}">
                             Add & View Notes
                         </button>
-                    </td>
-                `;
+                        <button type="button" class="btn btn-info btn-sm view-details-btn"
+                                data-student-id="${student.student_id}">
+                            View Details
+                        </button>
+                    </div>
+                </td>
+            `;
                 tableBody.appendChild(row);
 
                 const modalDiv = document.createElement('div');

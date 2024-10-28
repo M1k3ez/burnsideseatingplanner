@@ -382,6 +382,51 @@ def add_student_note(student_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@teacher_bp.route('/api/student/<int:student_id>/details')
+@login_required
+def get_student_details(student_id):
+    """Get detailed information for a specific student"""
+    if current_user.role != USER_ROLE["Teacher"]:
+        return jsonify({'error': 'Unauthorized access'}), 403
+    try:
+        student = (Student.query
+            .outerjoin(SACStudent)
+            .outerjoin(Sac)
+            .filter(Student.student_id == student_id)
+            .first())
+        if not student:
+            return jsonify({
+                'success': False,
+                'error': 'Student not found'
+            }), 404
+        sac_conditions = [
+            sac_student.sac.sac_name 
+            for sac_student in student.sac_students
+        ] if student.sac_students else []
+        return jsonify({
+            'success': True,
+            'student_id': student.student_id,
+            'nsn': student.nsn,
+            'first_name': student.first_name,
+            'last_name': student.last_name,
+            'photo': student.photo,
+            'gender': student.gender,
+            'level': student.level,
+            'form_class': student.form_class,
+            'date_of_birth': student.date_of_birth,
+            'ethnicity_l1': student.ethnicity_l1,
+            'ethnicity_l2': student.ethnicity_l2,
+            'academic_performance': student.get_academic_performance(),
+            'language_proficiency': student.get_language_proficiency(),
+            'sac_status': sac_conditions
+        })
+    except Exception as e:
+        logger.error(f"Error fetching student details: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to fetch student details'
+        }), 500
+
 
 @teacher_bp.route('/api/notes/<int:note_id>', methods=['DELETE'])
 @login_required

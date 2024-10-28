@@ -61,6 +61,54 @@
     </div>
 </div>
 
+<!-- New Student Details Modal -->
+<div class="modal fade" id="studentDetailsModal" tabindex="-1" aria-labelledby="studentDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="studentDetailsModalLabel">Student Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3">
+                        <img id="studentDetailsPhoto" src="" alt="Student Photo" class="img-fluid rounded mb-2" style="max-width: 150px;">
+                    </div>
+                    <div class="col-md-8">
+                        <h4 id="studentDetailsName"></h4>
+                        <p class="mb-1"><strong>Student ID:</strong> <span id="studentDetailsId"></span></p>
+                        <p class="mb-1"><strong>NSN:</strong> <span id="studentDetailsNsn"></span></p>
+                        <p class="mb-1"><strong>Gender:</strong> <span id="studentDetailsGender"></span></p>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Academic Information</h5>
+                        <p class="mb-1"><strong>Level:</strong> <span id="studentDetailsLevel"></span></p>
+                        <p class="mb-1"><strong>Form Class:</strong> <span id="studentDetailsFormClass"></span></p>
+                        <p class="mb-1"><strong>Academic Performance:</strong> <span id="studentDetailsPerformance"></span></p>
+                        <p class="mb-1"><strong>Language Proficiency:</strong> <span id="studentDetailsProficiency"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Personal Information</h5>
+                        <p class="mb-1"><strong>Date of Birth:</strong> <span id="studentDetailsDob"></span></p>
+                        <p class="mb-1"><strong>Ethnicity L1:</strong> <span id="studentDetailsEthnicityL1"></span></p>
+                        <p class="mb-1"><strong>Ethnicity L2:</strong> <span id="studentDetailsEthnicityL2"></span></p>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-12">
+                        <h5>SAC Status</h5>
+                        <p id="studentDetailsSac"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div id="studentsTableContainer" style="display: none;">
     <div class="table-responsive">
         <table class="table table-striped table-bordered">
@@ -73,7 +121,7 @@
                     <th scope='col'>SAC Status</th>
                     <th scope='col'>Academic Performance</th>
                     <th scope='col'>Language Proficiency</th>
-                    <th scope='col'>Actions</th>
+                    <th scope='col'>Extra information</th>
                 </tr>
             </thead>
             <tbody id="studentsTableBody">
@@ -85,6 +133,7 @@
 <div id="notesModalContainer">
     {# Note modals will be inserted here dynamically when students are loaded #}
 </div>
+
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -96,7 +145,6 @@
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const modals = document.querySelectorAll('[id^="studentNoteModal"]');
-    
     modals.forEach(modal => {
       const rootElement = modal.querySelector('[id^="student-notes-root"]');
       if (rootElement) {
@@ -110,6 +158,37 @@
         }));
       }
     });
+    const tableBody = document.getElementById('studentsTableBody');
+    if (tableBody) {
+      tableBody.addEventListener('click', async function(e) {
+        if (e.target.classList.contains('view-details-btn')) {
+          const studentId = e.target.getAttribute('data-student-id');
+          try {
+            const response = await fetch(`/teacher/api/student/${studentId}/details`);
+            if (!response.ok) throw new Error('Failed to fetch student details');
+            const data = await response.json();
+            document.getElementById('studentDetailsPhoto').src = data.photo || '/static/images/default_avatar.png';
+            document.getElementById('studentDetailsName').textContent = `${data.first_name} ${data.last_name}`;
+            document.getElementById('studentDetailsId').textContent = data.student_id;
+            document.getElementById('studentDetailsNsn').textContent = data.nsn;
+            document.getElementById('studentDetailsGender').textContent = data.gender;
+            document.getElementById('studentDetailsLevel').textContent = data.level || 'Not specified';
+            document.getElementById('studentDetailsFormClass').textContent = data.form_class || 'Not specified';
+            document.getElementById('studentDetailsPerformance').textContent = data.academic_performance;
+            document.getElementById('studentDetailsProficiency').textContent = data.language_proficiency;
+            document.getElementById('studentDetailsDob').textContent = data.date_of_birth || 'Not specified';
+            document.getElementById('studentDetailsEthnicityL1').textContent = data.ethnicity_l1 || 'Not specified';
+            document.getElementById('studentDetailsEthnicityL2').textContent = data.ethnicity_l2 || 'Not specified';
+            document.getElementById('studentDetailsSac').textContent = data.sac_status.length ? data.sac_status.join(', ') : 'No SAC conditions';
+            const modal = new bootstrap.Modal(document.getElementById('studentDetailsModal'));
+            modal.show();
+          } catch (error) {
+            console.error('Error fetching student details:', error);
+            alert('Failed to load student details. Please try again.');
+          }
+        }
+      });
+    }
   });
 </script>
 {% endblock %}
