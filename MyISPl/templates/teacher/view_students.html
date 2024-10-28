@@ -19,14 +19,14 @@
                     Import CSV
                 </button>
                 <a href="{{ url_for('teacher.export_csv') }}" class="btn btn-secondary">Export CSV</a>
-                <button type="button" class="btn btn-warning" id="classEditModeBtn">Edit Class</button>
+                <button type="button" class="btn btn-warning" id="classEditModeBtn">Edit Mode</button>
             </div>
         </div>
     </div>
 </div>
 <div class="col-md-6 text-end">
     <div class="btn-group edit-mode-buttons" style="display: none;">
-        <button type="button" class="btn btn-warning" id="classEditModeBtn">Edit Class</button>
+        <button type="button" class="btn btn-warning" id="classEditModeBtn">Edit Mode</button>
         <button type="button" class="btn btn-success" id="classSaveBtn" style="display: none;">Save All</button>
         <button type="button" class="btn btn-danger" id="classCancelBtn" style="display: none;">Cancel</button>
     </div>
@@ -61,7 +61,7 @@
     </div>
 </div>
 
-<!-- New Student Details Modal -->
+{# New Student Details Modal #}
 <div class="modal fade" id="studentDetailsModal" tabindex="-1" aria-labelledby="studentDetailsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">

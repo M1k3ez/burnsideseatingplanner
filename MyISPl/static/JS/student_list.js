@@ -69,82 +69,83 @@ document.addEventListener('DOMContentLoaded', function() {
         return select;
     }
 
- // Modified makeAllRowsEditable function
- function makeAllRowsEditable() {
-    const rows = document.querySelectorAll('#studentsTableBody tr');
-    rows.forEach(row => {
-        // Store original values
-        row.querySelectorAll('td').forEach(cell => {
-            cell.dataset.original = cell.textContent;
+    function makeAllRowsEditable() {
+        const rows = document.querySelectorAll('#studentsTableBody tr');
+        rows.forEach(row => {
+            // Store original values in a custom property
+            row.querySelectorAll('td').forEach(cell => {
+                cell._originalContent = cell.innerHTML;
+            });
+    
+            // Student ID cell
+            const idCell = row.querySelector('td:first-child');
+            const idInput = document.createElement('input');
+            idInput.type = 'text';
+            idInput.className = 'form-control form-control-sm';
+            idInput.value = idCell.textContent.trim();
+            idCell.innerHTML = '';
+            idCell.appendChild(idInput);
+    
+            // Name cell
+            const nameCell = row.querySelector('td:nth-child(3)');
+            const fullName = nameCell.textContent.trim().split(' ');
+            const nameContainer = document.createElement('div');
+            nameContainer.className = 'd-flex gap-2';
+    
+            const firstNameInput = document.createElement('input');
+            firstNameInput.type = 'text';
+            firstNameInput.className = 'form-control form-control-sm';
+            firstNameInput.value = fullName[0];
+            firstNameInput.placeholder = 'First Name';
+    
+            const lastNameInput = document.createElement('input');
+            lastNameInput.type = 'text';
+            lastNameInput.className = 'form-control form-control-sm';
+            lastNameInput.value = fullName[1] || '';
+            lastNameInput.placeholder = 'Last Name';
+    
+            nameContainer.appendChild(firstNameInput);
+            nameContainer.appendChild(lastNameInput);
+            nameCell.innerHTML = '';
+            nameCell.appendChild(nameContainer);
+    
+            // Gender cell
+            const genderCell = row.querySelector('td:nth-child(4)');
+            const genderSelect = document.createElement('select');
+            genderSelect.className = 'form-select form-select-sm';
+            ['M', 'F', 'O'].forEach(gender => {
+                const option = document.createElement('option');
+                option.value = gender;
+                option.textContent = gender === 'M' ? 'Male' : gender === 'F' ? 'Female' : 'Other';
+                if (genderCell.textContent.trim() === gender) option.selected = true;
+                genderSelect.appendChild(option);
+            });
+            genderCell.innerHTML = '';
+            genderCell.appendChild(genderSelect);
+    
+            // SAC Status cell
+            const sacCell = row.querySelector('td:nth-child(5)');
+            const sacCheckboxes = createSacCheckboxes(sacCell.textContent);
+            sacCell.innerHTML = '';
+            sacCell.appendChild(sacCheckboxes);
+    
+            // Performance and Proficiency cells
+            const performanceCell = row.querySelector('.performance-cell');
+            const proficiencyCell = row.querySelector('.proficiency-cell');
+    
+            const performanceSelect = createSelect(ACADEMIC_PERFORMANCE, performanceCell.textContent.trim());
+            const proficiencySelect = createSelect(LANGUAGE_PROFICIENCY, proficiencyCell.textContent.trim());
+    
+            performanceCell.innerHTML = '';
+            performanceCell.appendChild(performanceSelect);
+            proficiencyCell.innerHTML = '';
+            proficiencyCell.appendChild(proficiencySelect);
         });
+    
+        showEditModeButtons();
+    }
+    
 
-        // Student ID cell
-        const idCell = row.querySelector('td:first-child');
-        const idInput = document.createElement('input');
-        idInput.type = 'text';
-        idInput.className = 'form-control form-control-sm';
-        idInput.value = idCell.textContent;
-        idCell.textContent = '';
-        idCell.appendChild(idInput);
-
-        // Name cell
-        const nameCell = row.querySelector('td:nth-child(3)');
-        const fullName = nameCell.textContent.split(' ');
-        const nameContainer = document.createElement('div');
-        nameContainer.className = 'd-flex gap-2';
-        
-        const firstNameInput = document.createElement('input');
-        firstNameInput.type = 'text';
-        firstNameInput.className = 'form-control form-control-sm';
-        firstNameInput.value = fullName[0];
-        firstNameInput.placeholder = 'First Name';
-
-        const lastNameInput = document.createElement('input');
-        lastNameInput.type = 'text';
-        lastNameInput.className = 'form-control form-control-sm';
-        lastNameInput.value = fullName[1] || '';
-        lastNameInput.placeholder = 'Last Name';
-
-        nameContainer.appendChild(firstNameInput);
-        nameContainer.appendChild(lastNameInput);
-        nameCell.textContent = '';
-        nameCell.appendChild(nameContainer);
-
-        // Gender cell
-        const genderCell = row.querySelector('td:nth-child(4)');
-        const genderSelect = document.createElement('select');
-        genderSelect.className = 'form-select form-select-sm';
-        ['M', 'F', 'O'].forEach(gender => {
-            const option = document.createElement('option');
-            option.value = gender;
-            option.textContent = gender === 'M' ? 'Male' : gender === 'F' ? 'Female' : 'Other';
-            if (genderCell.textContent === gender) option.selected = true;
-            genderSelect.appendChild(option);
-        });
-        genderCell.textContent = '';
-        genderCell.appendChild(genderSelect);
-
-        // SAC Status cell
-        const sacCell = row.querySelector('td:nth-child(5)');
-        const sacCheckboxes = createSacCheckboxes(sacCell.textContent);
-        sacCell.textContent = '';
-        sacCell.appendChild(sacCheckboxes);
-
-        // Performance and Proficiency cells (keep existing code)
-        const performanceCell = row.querySelector('.performance-cell');
-        const proficiencyCell = row.querySelector('.proficiency-cell');
-        
-        const performanceSelect = createSelect(ACADEMIC_PERFORMANCE, performanceCell.textContent);
-        const proficiencySelect = createSelect(LANGUAGE_PROFICIENCY, proficiencyCell.textContent);
-
-        performanceCell.textContent = '';
-        performanceCell.appendChild(performanceSelect);
-        proficiencyCell.textContent = '';
-        proficiencyCell.appendChild(proficiencySelect);
-    });
-
-    showEditModeButtons();
-}
 
 // Modified saveAllChanges function
     async function saveAllChanges() {
@@ -221,15 +222,17 @@ document.addEventListener('DOMContentLoaded', function() {
     function cancelAllChanges() {
         const rows = document.querySelectorAll('#studentsTableBody tr');
         rows.forEach(row => {
-            const performanceCell = row.querySelector('.performance-cell');
-            const proficiencyCell = row.querySelector('.proficiency-cell');
-
-            performanceCell.textContent = performanceCell.dataset.original;
-            proficiencyCell.textContent = proficiencyCell.dataset.original;
+            row.querySelectorAll('td').forEach(cell => {
+                if (cell._originalContent !== undefined) {
+                    cell.innerHTML = cell._originalContent;
+                }
+            });
         });
 
         restoreOriginalButtons();
     }
+
+
     async function fetchSacOptions() {
         try {
             const response = await fetch('/teacher/api/sac-options');
@@ -326,7 +329,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 </td>
             `;
                 tableBody.appendChild(row);
-
                 const modalDiv = document.createElement('div');
                 modalDiv.innerHTML = `
                     <div id="studentNoteModal${student.student_id}" class="modal fade notes-modal" 
