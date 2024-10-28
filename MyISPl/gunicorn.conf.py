@@ -1,0 +1,9 @@
+bind = "0.0.0.0:8000"
+workers = 1
+worker_class = "sync"
+timeout = 600
+keepalive = 24
+accesslog = "-"
+errorlog = "-"
+loglevel = "debug"
+capture_output = True
