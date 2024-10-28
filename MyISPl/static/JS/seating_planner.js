@@ -91,6 +91,18 @@ $(document).ready(function() {
             height: 31px;
             padding: 0.25rem 0.5rem;
         }
+        .student-card.assigned {
+            display:none;
+        }
+
+        .student-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .student-card {
+            transition: all 0.3s ease;
+        }       
     `)
     .appendTo("head");
 
@@ -279,22 +291,37 @@ $(document).ready(function() {
         chairs = chairs.filter(c => c.id !== chairId);
         $(`.chair[data-chair-id="${chairId}"]`).remove();
     }
+    
+    function reorderStudentCards() {
+        const studentList = $('.student-list');
+        const cards = studentList.children('.student-card').get();
+        cards.sort((a, b) => {
+            const aAssigned = $(a).hasClass('assigned');
+            const bAssigned = $(b).hasClass('assigned');
+            if (aAssigned === bAssigned) return 0;
+            return aAssigned ? 1 : -1;
+        });
+        $.each(cards, function(idx, card) {
+            studentList.append(card);
+        });
+    }
 
     function unassignStudent(chair) {
         if (!chair.studentId) return;
-
+    
         const studentElement = $(`.student-card[data-student-id="${chair.studentId}"]`);
         studentElement.removeClass('assigned');
         if (studentElement.hasClass('ui-draggable')) {
             studentElement.draggable('enable');
         }
-
+    
         chair.studentId = null;
         chairs = chairs.map(c => c.id === chair.id ? chair : c);
-
+    
         const chairDiv = $(`.chair[data-chair-id="${chair.id}"]`);
         chairDiv.removeClass('occupied');
         chairDiv.html('<div class="empty-seat">Empty</div>');
+        reorderStudentCards();
     }
 
     function setupContextMenu(chairDiv, chair) {
@@ -601,6 +628,7 @@ $(document).ready(function() {
             
             chairs = chairs.map(c => c.id === chairId ? chair : c);
             studentElement.addClass('assigned').draggable('disable');
+            reorderStudentCards();
         } else {
             alert('This chair is already occupied.');
         }
@@ -660,7 +688,7 @@ $(document).ready(function() {
         if (text.length <= maxLength) return text;
         return text.substring(0, maxLength) + '...';
     }
-    
+
     function showStudentDetailsModal(studentId) {
         $.ajax({
             url: `/teacher/api/student/${studentId}/details`,
