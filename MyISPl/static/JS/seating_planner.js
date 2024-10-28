@@ -12,6 +12,7 @@ $(document).ready(function() {
     let selectedChairs = [];
     let isDragging = false;
     let mousePos = { x: 0, y: 0 };
+    let studentNotes = {};
 
     $("<style>")
     .prop("type", "text/css")
@@ -307,6 +308,14 @@ $(document).ready(function() {
                     top: e.pageY + 'px',
                     zIndex: 1000
                 });
+            // Add View Student Details option if a student is assigned
+            if (chair.studentId) {
+                const viewDetailsOption = $('<div>View Student Details</div>').click(function() {
+                    showStudentDetailsModal(chair.studentId);
+                    contextMenu.remove();
+                });
+                contextMenu.append(viewDetailsOption);
+            }
             const deleteOption = $('<div>Delete Chair</div>').click(function() {
                 deleteChair(chair.id);
                 contextMenu.remove();
@@ -339,7 +348,7 @@ $(document).ready(function() {
                             <div class="student-id">ID: ${chair.studentId}</div>
                             ${getStudentPhoto(chair.studentId)}
                             <span class="student-name">${getStudentName(chair.studentId)}</span>
-                            <span class="student-note">Note: this is the latest note</span>
+                            <span class="student-note" data-student-id="${chair.studentId}">Loading note...</span>
                         </div>
                     </div>
                 ` : `
@@ -347,11 +356,15 @@ $(document).ready(function() {
                 `}
             </div>
         `);
-
+    
         $("#canvas").append(chairDiv);
+        if (chair.studentId) {
+            updateStudentNote(chair.studentId);
+        }
         setupContextMenu(chairDiv, chair);
         setupChairDragging(chairDiv, chair);
     }
+
 
     function getStudentPhoto(studentId) {
         const student = students.find(s => s.student_id === studentId);
@@ -572,16 +585,20 @@ $(document).ready(function() {
             chair.studentId = studentId;
             const chairDiv = $(`.chair[data-chair-id="${chairId}"]`);
             chairDiv.addClass('occupied');
+            
             chairDiv.html(`
                 <div class="student-assigned" data-student-id="${studentId}">
                     <div class="student-info">
                         <div class="student-id">ID: ${studentId}</div>
                         ${getStudentPhoto(studentId)}
                         <span class="student-name">${getStudentName(studentId)}</span>
-                        <span class="student-note">Note: this is the latest note</span>
+                        <span class="student-note" data-student-id="${studentId}">Loading note...</span>
                     </div>
                 </div>
             `);
+    
+            updateStudentNote(studentId);
+            
             chairs = chairs.map(c => c.id === chairId ? chair : c);
             studentElement.addClass('assigned').draggable('disable');
         } else {
@@ -613,6 +630,138 @@ $(document).ready(function() {
         });
     }
 
+    function fetchStudentNotes(studentId) {
+        return $.ajax({
+            url: `/teacher/api/student/${studentId}/notes`,
+            method: 'GET'
+        }).then(function(response) {
+            if (response.notes && response.notes.length > 0) {
+                studentNotes[studentId] = response.notes[0];  // Store the latest note
+                return response.notes[0];
+            }
+            return null;
+        }).catch(function(error) {
+            console.error('Error fetching notes for student:', studentId, error);
+            return null;
+        });
+    }
+
+    function updateStudentNote(studentId) {
+        fetchStudentNotes(studentId).then(function(noteData) {
+            const noteText = noteData ? 
+                truncateText(noteData.details, 50) : 
+                'No notes available';
+            $(`.student-note[data-student-id="${studentId}"]`).text(noteText);
+        });
+    }
+
+    function truncateText(text, maxLength) {
+        if (!text) return '';
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+    }
+    
+    function showStudentDetailsModal(studentId) {
+        $.ajax({
+            url: `/teacher/api/student/${studentId}/details`,
+            method: 'GET',
+            success: function(studentResponse) {
+                if (studentResponse.success) {
+                    $.ajax({
+                        url: `/teacher/api/student/${studentId}/notes`,
+                        method: 'GET',
+                        success: function(notesResponse) {
+                            const student = studentResponse;
+                            const notes = notesResponse.notes || [];
+                            const modalHtml = `
+                                <div class="modal fade" id="studentDetailsModal" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Student Details: ${student.first_name} ${student.last_name}</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <h6 class="mb-3">Personal Information</h6>
+                                                        <p><strong>Student ID:</strong> ${student.student_id}</p>
+                                                        <p><strong>NSN:</strong> ${student.nsn}</p>
+                                                        <p><strong>Gender:</strong> ${student.gender}</p>
+                                                        <p><strong>Date of Birth:</strong> ${student.date_of_birth || 'Not specified'}</p>
+                                                        <p><strong>Form Class:</strong> ${student.form_class || 'Not specified'}</p>
+                                                        <p><strong>Level:</strong> ${student.level || 'Not specified'}</p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <h6 class="mb-3">Academic Information</h6>
+                                                        <p><strong>Academic Performance:</strong> ${student.academic_performance}</p>
+                                                        <p><strong>Language Proficiency:</strong> ${student.language_proficiency}</p>
+                                                        <p><strong>Ethnicity (L1):</strong> ${student.ethnicity_l1 || 'Not specified'}</p>
+                                                        <p><strong>Ethnicity (L2):</strong> ${student.ethnicity_l2 || 'Not specified'}</p>
+                                                        ${student.sac_status && student.sac_status.length > 0 ? 
+                                                            `<p><strong>SAC Status:</strong> ${student.sac_status.join(', ')}</p>` : 
+                                                            ''}
+                                                    </div>
+                                                </div>
+                                                <div class="row mt-4">
+                                                    <div class="col-12">
+                                                        <h6 class="mb-3">Notes History</h6>
+                                                        ${notes.length > 0 ? `
+                                                            <div class="table-responsive">
+                                                                <table class="table table-hover">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th>Date</th>
+                                                                            <th>Note</th>
+                                                                            <th>Teacher</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        ${notes.map(note => `
+                                                                            <tr>
+                                                                                <td>${new Date(note.date_created).toLocaleDateString()}</td>
+                                                                                <td>${note.details}</td>
+                                                                                <td>${note.teacher_name}</td>
+                                                                            </tr>
+                                                                        `).join('')}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        ` : '<p>No notes available</p>'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+    
+                            // Remove any existing modal
+                            $('#studentDetailsModal').remove();
+                            
+                            // Add new modal to page
+                            $('body').append(modalHtml);
+                            
+                            // Show the modal
+                            const modal = new bootstrap.Modal(document.getElementById('studentDetailsModal'));
+                            modal.show();
+                        },
+                        error: function() {
+                            alert('Failed to fetch student notes');
+                        }
+                    });
+                } else {
+                    alert('Failed to fetch student details');
+                }
+            },
+            error: function() {
+                alert('Failed to fetch student details');
+            }
+        });
+    }
     $(document).off('mousedown', '.chair').on('mousedown', '.chair', function(e) {
         if (isDragging) return;
         
