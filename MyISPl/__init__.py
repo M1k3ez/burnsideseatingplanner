@@ -1,5 +1,3 @@
-# __init__.py
-
 from flask import Flask
 from flask_login import LoginManager
 from models import db, User
@@ -15,26 +13,16 @@ load_dotenv()
 def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
-
-    # Setup secret key
     app.secret_key = os.environ.get("SECRET_KEY")
-
-    # Initialize extensions
     db.init_app(app)
     Session(app)
     login_manager = LoginManager()
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
-
-    # Define user loader for Flask-Login
     @login_manager.user_loader
     def load_user(provider_id):
         return User.query.filter_by(provider_id=provider_id).first()
-
-    # Initialize Flask-SocketIO with the app
     socketio.init_app(app)
-
-    # Register blueprints after initializing extensions
     from auth import auth_bp
     from sockets import sockets_bp, start_background_task
     from administrator import administrator_bp

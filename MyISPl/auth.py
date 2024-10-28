@@ -36,13 +36,13 @@ def login():
         user_role = current_user.get_role()
         print(f"Current user role is: {user_role}")
         if user_role == "Teacher":
-            return redirect(url_for('teacher.dashboard'))
+            return redirect(url_for('teacher.view_seating_plans'))
         elif user_role == "Network Manager":
-            return redirect(url_for('networkmanager.dashboard'))
+            return redirect(url_for('networkmanager.view_seating_plans'))
         elif user_role == "Administrator":
-            return redirect(url_for('administrator.dashboard'))
+            return redirect(url_for('administrator.view_seating_plans'))
         elif user_role == "Staff":
-            return redirect(url_for('staff.dashboard'))
+            return redirect(url_for('staff.view_seating_plans'))
         else:
             # Handle unknown roles
             print(f"Unauthorized role detected: {user_role}")

@@ -245,24 +245,6 @@ class SeatingPlan(db.Model):
     classrooms = association_proxy('classroom_seating_plans', 'classroom')
 
 
-class SeatAssignment(db.Model):
-    """
-    Join table between SeatingPlan and Student for seat assignments.
-    """
-    __tablename__ = 'SEAT_ASSIGNMENT'
-    seating_plan_id = db.Column(
-        db.Integer, ForeignKey('SEATING_PLAN.seating_plan_id'),
-        primary_key=True, nullable=False)
-    seat_number = db.Column(db.Integer, nullable=False)
-    student_id = db.Column(
-        db.Integer, ForeignKey('STUDENT.student_id'), nullable=False)
-
-    seating_plan = relationship(
-        'SeatingPlan', back_populates='seat_assignments', lazy='subquery')
-    student = relationship(
-        'Student', back_populates='seat_assignments', lazy='subquery')
-
-
 class StudentClass(db.Model):
     """
     Join table for Student and Class.
