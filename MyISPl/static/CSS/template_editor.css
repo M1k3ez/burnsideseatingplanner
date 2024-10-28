@@ -243,6 +243,32 @@
     margin-left: 1rem;
 }
 
+.template-name-display {
+    display: flex;
+    align-items: center;
+}
+
+.template-name-edit {
+    max-width: 400px;
+}
+
+.template-name-edit .input-group {
+    height: 31px;
+}
+
+.template-name-edit input {
+    height: 31px;
+    padding: 0.25rem 0.5rem;
+}
+
+.edit-name-btn {
+    color: #6c757d;
+}
+
+.edit-name-btn:hover {
+    color: #0d6efd;
+}
+
 /* Responsive adjustments */
 @media (max-width: 1200px) {
     .side-toolbar {

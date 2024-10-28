@@ -609,33 +609,72 @@ def update_class_students(class_id):
 @login_required
 def view_templates():
     """View templates for the current teacher"""
-    templates = (SeatingTemplates.query.filter_by(user_id=current_user.user_id).order_by(SeatingTemplates.date_created.desc()).all())
-    classrooms = Classroom.query.all() 
+    if current_user.role != USER_ROLE["Teacher"]:
+        flash("Access denied: You are not authorized to view templates.", "error")
+        return redirect(url_for('teacher.toolbox'))
+    templates = (SeatingTemplates.query
+        .filter_by(user_id=current_user.user_id)
+        .options(joinedload(SeatingTemplates.classroom))
+        .order_by(SeatingTemplates.date_created.desc())
+        .all())
+    classes = Class.query.filter_by(user_id=current_user.user_id).order_by(Class.class_name).all()
+    classrooms = Classroom.query.all()
     return render_template(
         'teacher/view_templates.html',
         templates=templates,
-        classrooms=classrooms)
+        classes=classes,
+        classrooms=classrooms
+    )
 
 
 @teacher_bp.route('/templates/create/<classroom_id>')
 @login_required
 def create_template(classroom_id):
+    """Create a new template"""
+    if current_user.role != USER_ROLE["Teacher"]:
+        flash("Access denied: You are not authorized to create templates.", "error")
+        return redirect(url_for('teacher.toolbox'))
     classroom = Classroom.query.get_or_404(classroom_id)
-    layout_data = {'chairs': [], 'layoutPreference': 'portrait'}
-    return render_template(
-        'teacher/edit_template.html', 
-        classroom=classroom,
-        layout_data=layout_data
+    template_name = request.args.get('name', 'Untitled Template')
+    new_template = SeatingTemplates(
+        seating_template_name=template_name,
+        classroom_id=classroom_id,
+        user_id=current_user.user_id,
+        layout_data=json.dumps({'chairs': [], 'layoutPreference': 'portrait'})
     )
+    try:
+        db.session.add(new_template)
+        db.session.commit()
+        return render_template(
+            'teacher/edit_template.html',
+            template=new_template,
+            classroom=classroom,
+            layout_data=json.loads(new_template.layout_data)
+        )
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error creating template: {str(e)}', 'error')
+        return redirect(url_for('teacher.view_templates'))
 
 
-@teacher_bp.route('/templates/<int:template_id>/edit')
+@teacher_bp.route('/templates/<int:template_id>/edit', methods=['GET', 'PUT'])
 @login_required
 def edit_template(template_id):
-    """Edit an existing template"""
     template = SeatingTemplates.query.get_or_404(template_id)
     if str(template.user_id) != str(current_user.user_id):
-        return 403
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+    if request.method == 'PUT':
+        try:
+            data = request.get_json()
+            if 'name' in data:  # Handle name update
+                template.seating_template_name = data['name']
+            elif 'layout_data' in data:  # Handle layout update
+                template.layout_data = json.dumps(data['layout_data'])  
+            db.session.commit()
+            return jsonify({'success': True})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'error': str(e)}), 500
     classroom = Classroom.query.get_or_404(template.classroom_id)
     try:
         layout_data = json.loads(template.layout_data)
@@ -649,7 +688,7 @@ def edit_template(template_id):
     )
 
 
-@teacher_bp.route('/api/templates', methods=['POST'])
+@teacher_bp.route(' ', methods=['POST'])
 @login_required
 def create_template_api():
     data = request.get_json()
@@ -667,26 +706,26 @@ def create_template_api():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@teacher_bp.route('/api/templates/<int:template_id>', methods=['PUT', 'DELETE'])
+@teacher_bp.route('/api/templates/<int:template_id>', methods=['PUT', 'POST', 'DELETE'])
 @login_required
 def manage_template_api(template_id):
     template = SeatingTemplates.query.get_or_404(template_id)
     if str(template.user_id) != str(current_user.user_id):
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
-    if request.method == 'DELETE':
+    if request.method in ['DELETE', 'POST']:  # Accept both DELETE and POST for deletion
         try:
             db.session.delete(template)
             db.session.commit()
-            return jsonify({'success': True})
+            return redirect(url_for('teacher.view_templates'))  # Redirect after deletion
         except Exception as e:
             db.session.rollback()
             return jsonify({'success': False, 'error': str(e)}), 500
-    else:  # PUT
+    else:  # PUT - update
         data = request.get_json()
         try:
             template.layout_data = json.dumps(data['layout_data'])
             db.session.commit()
-            return jsonify({'success': True})
+            return flash({'success': True})
         except Exception as e:
             db.session.rollback()
             return jsonify({'success': False, 'error': str(e)}), 500

@@ -3,16 +3,28 @@
 <div id="templateApp" class="seating-planner">
     <div class="toolbar">
         <div class="toolbar-left">
-            <h2 class="toolbar-title">Template Editor - {{ classroom.block_name }}{{ classroom.room_number }}</h2>
+            <div class="template-name-display">
+                <h2 class="toolbar-title">{{ template.seating_template_name or 'Untitled Template' }}</h2>
+                <button class="btn btn-outline-secondary btn-sm edit-name-btn ms-2">
+                    <i class="fas fa-edit"></i>
+                </button>
+            </div>
+            <div class="template-name-edit d-none">
+                <div class="input-group" style="width: 300px;">
+                    <input type="text" class="form-control form-control-sm" value="{{ template.seating_template_name or 'Untitled Template' }}">
+                    <button class="btn btn-success btn-sm save-name-btn">Save</button>
+                    <button class="btn btn-outline-secondary btn-sm cancel-name-btn">Cancel</button>
+                </div>
+            </div>
             <div class="toolbar-controls">
                 <div class="btn-group me-3">
-                    <button id="layoutPortrait" type="button" class="btn btn-outline-secondary">A4 Portrait</button>
-                    <button id="layoutLandscape" type="button" class="btn btn-outline-secondary">A4 Landscape</button>
+                    <button id="layoutPortrait" type="button" class="btn btn-outline-primary">A4 Portrait</button>
+                    <button id="layoutLandscape" type="button" class="btn btn-outline-primary">A4 Landscape</button>
                 </div>
-                <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#instructionsModal">
+                <button type="button" class="btn btn-outline-secondary me-3" data-bs-toggle="modal" data-bs-target="#instructionsModal">
                     Instructions
                 </button>
-                <button type="button" class="btn btn-success ms-3" id="saveTemplateBtn">
+                <button type="button" class="btn btn-success" id="saveTemplateBtn">
                     Save Template
                 </button>
             </div>
@@ -26,10 +38,12 @@
             </div>
         </div>
     </div>
+
     <div class="canvas-wrapper">
         <div id="canvas" class="grid-canvas">
         </div>
     </div>
+
     <div class="modal fade" id="instructionsModal" tabindex="-1" aria-labelledby="instructionsModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -53,6 +67,7 @@
     </div>
 </div>
 {% endblock %}
+
 {% block extra_js %}
 <script>
     window.TEMPLATE_DATA = {

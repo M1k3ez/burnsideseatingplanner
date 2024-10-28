@@ -270,36 +270,35 @@ $(document).ready(function() {
         const currentLayout = $('#layoutPortrait').hasClass('active') ? 'portrait' : 'landscape';
         const templateId = window.TEMPLATE_DATA.templateId;
         const classroomId = window.TEMPLATE_DATA.classroomId;
-
+    
         console.log('Saving template with:', {
             templateId,
             classroomId,
             chairCount: chairs.length
         });
-
+    
         const layoutData = {
             chairs: chairs,
             layoutPreference: currentLayout
         };
-
+    
         const apiUrl = templateId ? 
-            `/teacher/api/templates/${templateId}` : 
+            `/teacher/templates/${templateId}/edit` :
             '/teacher/api/templates';
-
+    
         $.ajax({
             url: apiUrl,
-            method: templateId ? 'PUT' : 'POST',
+            method: 'PUT',  // Always use PUT since updating template layout
             contentType: 'application/json',
             data: JSON.stringify({
-                classroom_id: classroomId,
-                layout_data: layoutData
+                layout_data: layoutData  // Only send layout_data
             }),
             success: function(response) {
                 if (response.success) {
                     alert('Template saved successfully!');
                     window.location.href = '/teacher/templates';
                 } else {
-                    alert('Failed to save template: ' + (response.message || 'Unknown error'));
+                    alert('Failed to save template: ' + (response.error || 'Unknown error'));
                 }
             },
             error: function(xhr, status, error) {
@@ -389,13 +388,46 @@ $(document).ready(function() {
         }
     }
 
-    $('#autoArrangeBtn').click(function() {
-        const layout = localStorage.getItem('templateLayoutPreference') || 'portrait';
-        const canvasWidth = layout === 'portrait' ? 794 : 1123;
-        const canvasHeight = layout === 'portrait' ? 1123 : 794;
-        
-        chairs = generateDefaultChairs(canvasWidth, canvasHeight, isTemplateEditor());
-        initializeChairs();
+    const nameDisplay = $('.template-name-display');
+    const nameEdit = $('.template-name-edit');
+    const nameInput = nameEdit.find('input');
+    const titleEl = $('.toolbar-title');
+
+    $('.edit-name-btn').click(function() {
+        nameDisplay.addClass('d-none');
+        nameEdit.removeClass('d-none');
+        nameInput.focus();
+    });
+
+    $('.save-name-btn').click(async function() {
+        const newName = nameInput.val().trim();
+        if (!newName) return;
+
+        try {
+            const response = await fetch(`/teacher/templates/${window.TEMPLATE_DATA.templateId}/edit`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name: newName })
+            });
+
+            if (response.ok) {
+                titleEl.text(newName);
+                nameDisplay.removeClass('d-none');
+                nameEdit.addClass('d-none');
+            } else {
+                throw new Error('Failed to update name');
+            }
+        } catch (error) {
+            alert('Failed to update template name');
+        }
+    });
+
+    $('.cancel-name-btn').click(function() {
+        nameInput.val(titleEl.text());
+        nameDisplay.removeClass('d-none');
+        nameEdit.addClass('d-none');
     });
 
     $(window).resize(function() {

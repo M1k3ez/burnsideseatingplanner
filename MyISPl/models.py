@@ -136,9 +136,6 @@ class Student(db.Model):
 
     student_classes = relationship(
         'StudentClass', back_populates='student', cascade='all, delete-orphan')
-    seat_assignments = relationship(
-        'SeatAssignment', back_populates='student',
-        cascade='all, delete-orphan')
     notes = relationship(
         'Note', back_populates='student', cascade='all, delete-orphan')
     sac_students = relationship(
@@ -241,9 +238,6 @@ class SeatingPlan(db.Model):
     layout_data = db.Column(db.Text(), nullable=False, default='[]')
 
     class_ = relationship('Class', back_populates='seating_plans')
-    seat_assignments = relationship(
-        'SeatAssignment', back_populates='seating_plan',
-        cascade='all, delete-orphan')
     user_seating_plans = relationship(
         'UserSeatingPlan', back_populates='seating_plan',
         cascade='all, delete-orphan')

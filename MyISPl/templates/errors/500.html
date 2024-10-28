@@ -16,11 +16,11 @@
                     </a>
 
                     {% if current_user.is_authenticated %}
-                        {% set dashboard_route = {
-                            0: 'teacher.dashboard',
-                            1: 'networkmanager.dashboard',
-                            2: 'admin.dashboard',
-                            3: 'staff.dashboard'
+                        {% set view_seating_plans_route = {
+                            0: 'teacher.view_seating_plans',
+                            1: 'networkmanager.view_seating_plans',
+                            2: 'admin.view_seating_plans',
+                            3: 'staff.view_seating_plans'
                         }.get(current_user.role) %}
                         
                         {% if dashboard_route %}
