@@ -787,137 +787,145 @@ $(document).ready(function() {
             });
         }
 
-    function showStudentDetailsModal(studentId) {
-        $.ajax({
-            url: `/teacher/api/student/${studentId}/details`,
-            method: 'GET',
-            success: function(studentResponse) {
-                if (studentResponse.success) {
-                    $.ajax({
-                        url: `/teacher/api/student/${studentId}/notes`,
-                        method: 'GET',
-                        success: function(notesResponse) {
-                            const student = studentResponse;
-                            const notes = notesResponse.notes || [];
-
-                            // Fetch student shoutouts
-                            $.ajax({
-                                url: `/teacher/api/student/${studentId}/shoutouts`,
-                                method: 'GET',
-                                success: function(shoutoutsResponse) {
-                                    const shoutouts = shoutoutsResponse.shoutouts || [];
-                                    const shoutoutSection = `
-                                        <div class="row mt-4">
-                                            <div class="col-12">
-                                                <h6 class="mb-3">Shoutouts</h6>
-                                                ${shoutouts.length > 0 ? `
-                                                    <ul>
-                                                        ${shoutouts.map(shoutout => `
-                                                            <li>
-                                                                <strong>${shoutout.category}:</strong> ${shoutout.message}
-                                                            </li>
-                                                        `).join('')}
-                                                    </ul>
-                                                ` : '<p>No shoutouts available</p>'}
-                                            </div>
-                                        </div>
-                                    `;
-
-                                    const modalHtml = `
-                                        <div class="modal fade" id="studentDetailsModal" tabindex="-1" aria-hidden="true">
-                                            <div class="modal-dialog modal-lg">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Student Details: ${student.first_name} ${student.last_name}</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <div class="row">
-                                                            <div class="col-md-6">
-                                                                <h6 class="mb-3">Personal Information</h6>
-                                                                <p><strong>Student ID:</strong> ${student.student_id}</p>
-                                                                <p><strong>NSN:</strong> ${student.nsn}</p>
-                                                                <p><strong>Gender:</strong> ${student.gender}</p>
-                                                                <p><strong>Date of Birth:</strong> ${student.date_of_birth || 'Not specified'}</p>
-                                                                <p><strong>Form Class:</strong> ${student.form_class || 'Not specified'}</p>
-                                                                <p><strong>Level:</strong> ${student.level || 'Not specified'}</p>
-                                                            </div>
-                                                            <div class="col-md-6">
-                                                                <h6 class="mb-3">Academic Information</h6>
-                                                                <p><strong>Academic Performance:</strong> ${student.academic_performance}</p>
-                                                                <p><strong>Language Proficiency:</strong> ${student.language_proficiency}</p>
-                                                                <p><strong>Ethnicity (L1):</strong> ${student.ethnicity_l1 || 'Not specified'}</p>
-                                                                <p><strong>Ethnicity (L2):</strong> ${student.ethnicity_l2 || 'Not specified'}</p>
-                                                                ${student.sac_status && student.sac_status.length > 0 ? 
-                                                                    `<p><strong>SAC Status:</strong> ${student.sac_status.join(', ')}</p>` : 
-                                                                    ''}
-                                                            </div>
+        function showStudentDetailsModal(studentId) {
+            $.ajax({
+                url: `/teacher/api/student/${studentId}/details`,
+                method: 'GET',
+                success: function(studentResponse) {
+                    if (studentResponse.success) {
+                        $.ajax({
+                            url: `/teacher/api/student/${studentId}/notes`,
+                            method: 'GET',
+                            success: function(notesResponse) {
+                                const student = studentResponse;
+                                const notes = notesResponse.notes || [];
+        
+                                $.ajax({
+                                    url: `/teacher/api/student/${studentId}/shoutouts`,
+                                    method: 'GET',
+                                    success: function(shoutoutsResponse) {
+                                        const shoutouts = shoutoutsResponse.shoutouts || [];
+                                        const modalHtml = `
+                                            <div class="modal fade" id="studentDetailsModal" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-lg">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">Student Details: ${student.first_name} ${student.last_name}</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                         </div>
-                                                        <div class="row mt-4">
-                                                            <div class="col-12">
-                                                                <h6 class="mb-3">Notes History</h6>
-                                                                ${notes.length > 0 ? `
-                                                                    <div class="table-responsive">
-                                                                        <table class="table table-hover">
-                                                                            <thead>
-                                                                                <tr>
-                                                                                    <th>Date</th>
-                                                                                    <th>Note</th>
-                                                                                    <th>Teacher</th>
-                                                                                </tr>
-                                                                            </thead>
-                                                                            <tbody>
-                                                                                ${notes.map(note => `
+                                                        <div class="modal-body">
+                                                            <div class="row">
+                                                                <div class="col-md-6">
+                                                                    <h6 class="mb-3">Personal Information</h6>
+                                                                    <p><strong>Student ID:</strong> ${student.student_id}</p>
+                                                                    <p><strong>NSN:</strong> ${student.nsn}</p>
+                                                                    <p><strong>Gender:</strong> ${student.gender}</p>
+                                                                    <p><strong>Date of Birth:</strong> ${student.date_of_birth || 'Not specified'}</p>
+                                                                    <p><strong>Form Class:</strong> ${student.form_class || 'Not specified'}</p>
+                                                                    <p><strong>Level:</strong> ${student.level || 'Not specified'}</p>
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <h6 class="mb-3">Academic Information</h6>
+                                                                    <p><strong>Academic Performance:</strong> ${student.academic_performance}</p>
+                                                                    <p><strong>Language Proficiency:</strong> ${student.language_proficiency}</p>
+                                                                    <p><strong>Ethnicity (L1):</strong> ${student.ethnicity_l1 || 'Not specified'}</p>
+                                                                    <p><strong>Ethnicity (L2):</strong> ${student.ethnicity_l2 || 'Not specified'}</p>
+                                                                    ${student.sac_status && student.sac_status.length > 0 ? 
+                                                                        `<p><strong>SAC Status:</strong> ${student.sac_status.join(', ')}</p>` : 
+                                                                        ''}
+                                                                </div>
+                                                            </div>
+        
+                                                            <div class="row mt-4">
+                                                                <div class="col-12">
+                                                                    <h6 class="mb-3">Notes History</h6>
+                                                                    ${notes.length > 0 ? `
+                                                                        <div class="table-responsive">
+                                                                            <table class="table table-hover">
+                                                                                <thead>
                                                                                     <tr>
-                                                                                        <td>${new Date(note.date_created).toLocaleDateString()}</td>
-                                                                                        <td>${note.details}</td>
-                                                                                        <td>${note.teacher_name}</td>
+                                                                                        <th style="width: 15%">Date</th>
+                                                                                        <th style="width: 65%">Note</th>
+                                                                                        <th style="width: 20%">Teacher</th>
                                                                                     </tr>
-                                                                                `).join('')}
-                                                                            </tbody>
-                                                                        </table>
-                                                                    </div>
-                                                                ` : '<p>No notes available</p>'}
+                                                                                </thead>
+                                                                                <tbody>
+                                                                                    ${notes.map(note => `
+                                                                                        <tr>
+                                                                                            <td>${new Date(note.date_created).toLocaleDateString()}</td>
+                                                                                            <td>${note.details}</td>
+                                                                                            <td>${note.teacher_name}</td>
+                                                                                        </tr>
+                                                                                    `).join('')}
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
+                                                                    ` : '<p>No notes available</p>'}
+                                                                </div>
+                                                            </div>
+        
+                                                            <div class="row mt-4">
+                                                                <div class="col-12">
+                                                                    <h6 class="mb-3">Shoutouts</h6>
+                                                                    ${shoutouts.length > 0 ? `
+                                                                        <div class="table-responsive">
+                                                                            <table class="table table-hover">
+                                                                                <thead>
+                                                                                    <tr>
+                                                                                        <th style="width: 15%">Date</th>
+                                                                                        <th style="width: 20%">Category</th>
+                                                                                        <th style="width: 65%">Message</th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody>
+                                                                                    ${shoutouts.map(shoutout => `
+                                                                                        <tr>
+                                                                                            <td>${new Date(shoutout.date_assigned).toLocaleDateString()}</td>
+                                                                                            <td>${shoutout.category}</td>
+                                                                                            <td>${shoutout.message}</td>
+                                                                                        </tr>
+                                                                                    `).join('')}
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
+                                                                    ` : '<p>No shoutouts available</p>'}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                        ${shoutoutSection}
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    `;
-            
-                                    // Remove any existing modal
-                                    $('#studentDetailsModal').remove();
-                                    
-                                    // Add new modal to page
-                                    $('body').append(modalHtml);
-                                    
-                                    // Show the modal
-                                    const modal = new bootstrap.Modal(document.getElementById('studentDetailsModal'));
-                                    modal.show();
-                                },
-                                error: function() {
-                                    console.error('Failed to fetch student shoutouts');
-                                }
-                            });
-                        },
-                        error: function() {
-                            alert('Failed to fetch student notes');
-                        }
-                    });
-                } else {
+                                        `;
+                                        $('#studentDetailsModal').remove();
+                                        $('body').append(modalHtml);
+                                        const modal = new bootstrap.Modal(document.getElementById('studentDetailsModal'));
+                                        modal.show();
+                                    },
+                                    error: function() {
+                                        console.error('Failed to fetch student shoutouts');
+                                        alert('Failed to fetch student shoutouts');
+                                    }
+                                });
+                            },
+                            error: function() {
+                                console.error('Failed to fetch student notes');
+                                alert('Failed to fetch student notes');
+                            }
+                        });
+                    } else {
+                        console.error('Failed to fetch student details');
+                        alert('Failed to fetch student details');
+                    }
+                },
+                error: function() {
+                    console.error('Failed to fetch student details');
                     alert('Failed to fetch student details');
                 }
-            },
-            error: function() {
-                alert('Failed to fetch student details');
-            }
-        });
-    }
+            });
+        }
 
     $(document).off('mousedown', '.chair').on('mousedown', '.chair', function(e) {
         if (isDragging) return;

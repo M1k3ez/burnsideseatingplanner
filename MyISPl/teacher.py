@@ -952,7 +952,7 @@ def process_myispl_csv_row(student_data, user):
 @teacher_bp.route('/api/student/<int:student_id>/shoutouts', methods=['GET'])
 @login_required
 def get_student_shoutouts(student_id):
-    """Get all shoutouts assigned to a student"""
+    """Get all shoutouts assigned to a specific student"""
     if current_user.role != USER_ROLE["Teacher"]:
         return jsonify({'error': 'Unauthorized access'}), 403
     try:
@@ -960,6 +960,7 @@ def get_student_shoutouts(student_id):
             .join(ShoutoutList)
             .filter(StudentShoutoutList.student_id == student_id)
             .filter(StudentShoutoutList.user_id == current_user.user_id)
+            .order_by(StudentShoutoutList.date_assigned.desc())  # Order by date descending
             .all())
         return jsonify({
             'success': True,
@@ -967,7 +968,8 @@ def get_student_shoutouts(student_id):
                 {
                     'id': shoutout.shoutout.shoutout_id,
                     'category': shoutout.shoutout.shoutout_category,
-                    'message': shoutout.shoutout.shoutout_message
+                    'message': shoutout.shoutout.shoutout_message,
+                    'date_assigned': shoutout.date_assigned.isoformat() if shoutout.date_assigned else None
                 }
                 for shoutout in shoutouts
             ]
