@@ -568,15 +568,24 @@ $(document).ready(function() {
         $('.chair.selected').removeClass('selected');
         return newChairs;
     }
-
+    /**
+     * Chair Alignment System
+     * Automatically aligns selected chairs in a linear arrangement
+     */
     function alignSelectedChairs() {
         if (selectedChairs.length < 2) return;
+        
+        // Get reference points from first and last chairs
         const firstChair = selectedChairs[0];
         const lastChair = selectedChairs[selectedChairs.length - 1];
+        
+        // Calculate total distance and step size
         const xDiff = lastChair.x - firstChair.x;
         const yDiff = lastChair.y - firstChair.y;
         const xStep = xDiff / (selectedChairs.length - 1);
         const yStep = yDiff / (selectedChairs.length - 1);
+        
+        // Position intermediate chairs evenly
         selectedChairs.forEach((chair, index) => {
             if (index > 0 && index < selectedChairs.length - 1) {
                 const newX = firstChair.x + (xStep * index);
@@ -585,6 +594,7 @@ $(document).ready(function() {
                 chair.x = newX;
                 chair.y = newY;
                 
+                // Update visual position
                 $(`.chair[data-chair-id="${chair.id}"]`).css({
                     left: newX + 'px',
                     top: newY + 'px'
@@ -592,14 +602,24 @@ $(document).ready(function() {
             }
         });
 
+        // Clear selection after alignment
         selectedChairs = [];
         $('.chair.selected').removeClass('selected');
     }
-
+    /**
+     * Smart Student Assignment System
+     * Finds the nearest available chair and assigns a student to it
+     * @param {number} studentId - ID of the student to assign
+     * @param {number} x - Drop x coordinate
+     * @param {number} y - Drop y coordinate
+     * @param {jQuery} studentElement - The dragged student element
+     */
     function assignStudentToNearestChair(studentId, x, y, studentElement) {
+        // Adjust coordinates for scroll position
         x += lastScrollLeft;
         y += lastScrollTop;
 
+        // Find closest empty chair using Euclidean distance
         let minDistance = Infinity;
         let closestChair = null;
         
@@ -612,13 +632,12 @@ $(document).ready(function() {
                 }
             }
         });
-
         if (closestChair) {
             assignStudentToSpecificChair(studentId, closestChair.id, studentElement);
         } else {
             alert('No available chair nearby to assign this student.');
         }
-    }
+}
 
     function assignStudentToSpecificChair(studentId, chairId, studentElement) {
         const chair = chairs.find(c => c.id === chairId);
@@ -663,10 +682,21 @@ $(document).ready(function() {
         });
     }
 
+    /**
+     * Complex Layout Save System
+     * Saves the current chair layout with position data and preferences
+     */
     function saveLayout() {
         const currentLayout = $('#layoutPortrait').hasClass('active') ? 'portrait' : 'landscape';
         const layoutData = {
-            chairs: chairs,
+            chairs: chairs.map(chair => ({
+                ...chair,
+                // Clean up any temporary properties used for dragging
+                mouseStartX: undefined,
+                mouseStartY: undefined,
+                originalLeft: undefined,
+                originalTop: undefined
+            })),
             layoutPreference: currentLayout
         };
         $.ajax({
@@ -801,24 +831,32 @@ $(document).ready(function() {
             });
         }
 
-        function showStudentDetailsModal(studentId) {
-            $.ajax({
-                url: `/teacher/api/student/${studentId}/details`,
-                method: 'GET',
-                success: function(studentResponse) {
-                    if (studentResponse.success) {
-                        $.ajax({
-                            url: `/teacher/api/student/${studentId}/notes`,
-                            method: 'GET',
-                            success: function(notesResponse) {
-                                const student = studentResponse;
-                                const notes = notesResponse.notes || [];
-        
-                                $.ajax({
-                                    url: `/teacher/api/student/${studentId}/shoutouts`,
-                                    method: 'GET',
-                                    success: function(shoutoutsResponse) {
-                                        const shoutouts = shoutoutsResponse.shoutouts || [];
+    /**
+     * Student Details Modal System
+     * Fetches and displays comprehensive student information from multiple endpoints
+     * @param {number} studentId - ID of the student to display
+     */
+    function showStudentDetailsModal(studentId) {
+        // Sequential API calls to gather all student information
+        $.ajax({
+            url: `/teacher/api/student/${studentId}/details`,
+            method: 'GET',
+            success: function(studentResponse) {
+                if (studentResponse.success) {
+                    // Fetch student notes
+                    $.ajax({
+                        url: `/teacher/api/student/${studentId}/notes`,
+                        method: 'GET',
+                        success: function(notesResponse) {
+                            const student = studentResponse;
+                            const notes = notesResponse.notes || [];
+
+                            // Fetch student shoutouts
+                            $.ajax({
+                                url: `/teacher/api/student/${studentId}/shoutouts`,
+                                method: 'GET',
+                                success: function(shoutoutsResponse) {
+                                    const shoutouts = shoutoutsResponse.shoutouts || [];
                                         const modalHtml = `
                                             <div class="modal fade" id="studentDetailsModal" tabindex="-1" aria-hidden="true">
                                                 <div class="modal-dialog modal-lg">
@@ -997,24 +1035,25 @@ $(document).ready(function() {
          
 
     $(document).off('mousedown', '.chair').on('mousedown', '.chair', function(e) {
-        if (isDragging) return;
+        if (isDragging) return;  // Prevent selection during drag operations
         
         const clickedChairId = $(this).data('chair-id');
         const clickedChair = chairs.find(c => c.id === clickedChairId);
         
+        // Multi-select with Ctrl/Cmd key
         if (e.ctrlKey || e.metaKey) {
             const index = selectedChairs.findIndex(c => c.id === clickedChairId);
             if (index === -1) {
-                // Add to selection
+                // Add to selection if not already selected
                 selectedChairs.push(clickedChair);
                 $(this).addClass('selected');
             } else {
-                // Remove from selection
+                // Remove from selection if already selected
                 selectedChairs.splice(index, 1);
                 $(this).removeClass('selected');
             }
         } else {
-            // Single selection if not already selected
+            // Single selection behavior
             if (!$(this).hasClass('selected') || selectedChairs.length !== 1) {
                 selectedChairs = [clickedChair];
                 $('.chair.selected').removeClass('selected');
@@ -1024,6 +1063,7 @@ $(document).ready(function() {
 
         e.stopPropagation();
     });
+
 
     $(document).on('click', function(e) {
         if (!$(e.target).closest('.chair, .chair-context-menu').length && !isDragging) {

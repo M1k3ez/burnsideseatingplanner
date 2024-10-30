@@ -146,7 +146,7 @@ class Student(db.Model):
 
 
 class Class(db.Model):
-    __tablename__ = 'CLASS'
+    __tablename__ = 'CLASS' 
     class_id = db.Column(db.Integer, primary_key=True)
     class_code = db.Column(db.String(), unique=True, nullable=False)
     class_name = db.Column(db.String(), nullable=False)

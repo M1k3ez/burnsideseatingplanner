@@ -135,13 +135,21 @@ def import_csv():
     return render_template('teacher/view_students.html', teacher=user)
 
 
+# Data Export/Import Routes
 @teacher_bp.route('/export_csv')
 @login_required
 def export_csv():
+    """
+    Exports student data to CSV
+    - Gets all students from teacher's classes
+    - Includes comprehensive student information
+    - Handles relationships and joins efficiently
+    """
     teacher = User.query.filter_by(user_id=current_user.user_id).first()
     if teacher.role != USER_ROLE["Teacher"]:
         flash("Access denied: You are not authorized to export CSV.", "error")
         return redirect(url_for('teacher.toolbox'))
+    # Complex query to get all students with their classes
     students = (
         db.session.query(Student)
         .join(StudentClass, Student.student_id == StudentClass.student_id)
@@ -151,16 +159,22 @@ def export_csv():
         .distinct()
         .all()
     )
+    # Create CSV in memory
     output = StringIO()
     writer = csv.writer(output)
-    writer.writerow(['Student ID', 'NSN', 'First Name', 'Last Name', 'Gender', 'Academic Performance', 
-                     'Language Proficiency', 'Level', 'Form Class',
-                     'Date of Birth', 'Ethnicity L1', 'Ethnicity L2',
-                     'Classes'])
+    # Write headers
+    writer.writerow([
+        'Student ID', 'NSN', 'First Name', 'Last Name', 'Gender',
+                    'Academic Performance', 'Language Proficiency', 'Level', 
+                    'Form Class', 'Date of Birth', 'Ethnicity L1', 'Ethnicity L2',
+                    'Classes'])
+    # Write student data
     for student in students:
+        # Get all classes for this student that belong to the teacher
         classes = [
             f"{sc.class_.class_name} ({sc.class_.class_code})" 
-            for sc in student.student_classes if sc.class_.user_id == teacher.user_id]
+            for sc in student.student_classes if sc.class_.user_id == teacher.user_id
+        ]
         classes_str = '; '.join(classes)
         writer.writerow([
             student.student_id, student.nsn, student.first_name,
@@ -171,6 +185,7 @@ def export_csv():
             student.ethnicity_l1, student.ethnicity_l2,
             classes_str
         ])
+    # Send file to user
     output.seek(0)
     return send_file(
         BytesIO(output.getvalue().encode()),
@@ -290,34 +305,47 @@ def create_seating_plan():
 @teacher_bp.route('/edit_seating_plan/<int:plan_id>', methods=['GET'])
 @login_required
 def edit_seating_plan(plan_id):
+    """
+    Complex endpoint that handles seating plan editing with multiple relationships:
+    - Loads seating plan with joined class data
+    - Processes student data for frontend
+    - Handles classroom assignments
+    - Manages shoutout categories
+    """
     seating_plan = (SeatingPlan.query
-        .options(joinedload(SeatingPlan.class_))  # Ensure class relationship is loaded
+        .options(joinedload(SeatingPlan.class_))  # Eager load class relationship
         .get_or_404(plan_id))
+    # Security check for plan ownership
     if str(seating_plan.user_id) != str(current_user.user_id):
         flash('Unauthorized access to this seating plan', 'error')
         return redirect(url_for('teacher.seating_plans'))
+    # Complex query to get students with optimized loading
     students = (Student.query
         .join(StudentClass)
         .filter(StudentClass.class_id == seating_plan.class_id)
         .all())
+    # Transform student data for frontend consumption
     serialized_students = [{
         'student_id': student.student_id,
         'first_name': student.first_name,
         'last_name': student.last_name,
         'photo': student.photo if student.photo else None,
     } for student in students]
+    # Handle classroom assignment validation
     classroom = None
     if seating_plan.classroom_seating_plans:
         classroom = seating_plan.classroom_seating_plans[0].classroom
     if not classroom:
         flash('No classroom assigned to this seating plan', 'error')
         return redirect(url_for('teacher.seating_plans'))
+    # Process layout data with error handling
     layout_data = []
     if seating_plan.layout_data:
         try:
             layout_data = json.loads(seating_plan.layout_data)
         except json.JSONDecodeError:
             layout_data = []
+    # Organize shoutout categories into hierarchical structure
     shoutout_categories = {}
     shoutouts = ShoutoutList.query.all()
     for shoutout in shoutouts:
@@ -876,21 +904,36 @@ def get_classroom_templates(classroom_id):
 
 
 def generate_default_chairs(canvas_width, canvas_height, student_count):
+    """
+    Complex algorithm that generates an optimal layout of chairs:
+    - Calculates grid dimensions based on canvas size
+    - Handles dynamic spacing and margins
+    - Centers the entire layout
+    - Supports both portrait and landscape orientations
+    """
     CHAIR_WIDTH = 120
     CHAIR_HEIGHT = 120
     MARGIN = 20
+    # Calculate maximum chairs per row based on canvas width
     max_chairs_per_row = (canvas_width - MARGIN) // (CHAIR_WIDTH + MARGIN)
+    # Calculate required number of rows
     num_rows = (student_count + max_chairs_per_row - 1) // max_chairs_per_row
+    # Calculate total width and height of chair layout
     total_width = min(max_chairs_per_row, student_count) * (
         CHAIR_WIDTH + MARGIN) - MARGIN
     total_height = num_rows * (CHAIR_HEIGHT + MARGIN) - MARGIN
+    # Center the layout on canvas
     start_x = (canvas_width - total_width) // 2
     start_y = (canvas_height - total_height) // 2
+    # Generate chair positions
     chairs = []
     chair_id = 1
     for row in range(num_rows):
+        # Handle last row with potentially fewer chairs
         chairs_in_row = min(
-            max_chairs_per_row, student_count - row * max_chairs_per_row)
+            max_chairs_per_row, 
+            student_count - row * max_chairs_per_row
+        )
         for col in range(chairs_in_row):
             chairs.append({
                 'id': chair_id,
@@ -902,22 +945,34 @@ def generate_default_chairs(canvas_width, canvas_height, student_count):
 
 
 def process_kamar_csv_row(student_data, user):
+    """
+    Complex function that processes KAMAR CSV data with multiple entity relationships:
+    - Creates/updates classes
+    - Creates/updates students
+    - Manages student-class relationships
+    - Handles data validation and logging
+    """
     logger.debug(f"Processing KAMAR row: {student_data}")
+    # Extract primary identifiers
     student_id = student_data.get('Number')
     nsn = student_data.get('NSI')
     subject = student_data.get('Subject')
+    # Validate required fields
     if not student_id or not subject:
-        logger.error(f"Skipping row due to missing Number or Subject: {
-            student_data}")
+        logger.error(f"Skipping row due to missing Number or Subject: {student_data}")
         return
+    # Class processing with upsert logic
     logger.debug(f"Processing class: {subject}")
-    class_ = Class.query.filter_by(
-        user_id=user.user_id, class_name=subject).first()
+    class_ = Class.query.filter_by(user_id=user.user_id, class_name=subject).first()
     if not class_:
         logger.debug(f"Creating new class: {subject}")
         class_ = Class(
-            user_id=user.user_id, class_name=subject, class_code=subject)
+            user_id=user.user_id, 
+            class_name=subject, 
+            class_code=subject
+        )
         db.session.add(class_)
+    # Student processing with complex upsert logic
     logger.debug(f"Processing student: {student_id}")
     student = Student.query.get(student_id)
     if not student:
@@ -938,6 +993,7 @@ def process_kamar_csv_row(student_data, user):
         )
         db.session.add(student)
     else:
+        # Update existing student data
         logger.debug(f"Updating existing student: {student_id}")
         student.nsn = nsn
         student.first_name = student_data.get('First Name')
@@ -948,15 +1004,18 @@ def process_kamar_csv_row(student_data, user):
         student.date_of_birth = student_data.get('Date of Birth')
         student.ethnicity_l1 = student_data.get('Ethnicity (L1)')
         student.ethnicity_l2 = student_data.get('Ethnicity (L2)')
-    logger.debug(
-        f"Processing StudentClass relationship: {student_id} - {subject}")
+    # Handle student-class relationship
+    logger.debug(f"Processing StudentClass relationship: {student_id} - {subject}")
     student_class = StudentClass.query.filter_by(
-        student_id=student_id, class_id=class_.class_id).first()
+        student_id=student_id, 
+        class_id=class_.class_id
+    ).first()
     if not student_class:
-        logger.debug(
-            f"Creating new StudentClass relationship: {student_id} - {subject}")
+        logger.debug(f"Creating new StudentClass relationship: {student_id} - {subject}")
         student_class = StudentClass(
-            student_id=student_id, class_id=class_.class_id)
+            student_id=student_id, 
+            class_id=class_.class_id
+        )
         db.session.add(student_class)
 
 
