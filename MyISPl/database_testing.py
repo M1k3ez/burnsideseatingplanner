@@ -1,8 +1,8 @@
 from flask import Flask
 from models import (
-    db, User, Classroom, SeatingPlan, UserSeatingPlan, ClassroomSeatingPlan,
-    Class, Student, StudentClass, SeatAssignment, Note, AuthenticationToken,
-    USER_ROLE, EMAIL_DOMAIN, EXPIRY_STATUS, ACADEMIC_PERFORMANCE, SAC_STATUS
+    db, User, Classroom, SeatingPlan, ClassroomSeatingPlan,
+    Class, Student, StudentClass, Note,
+    USER_ROLE, EMAIL_DOMAIN, EXPIRY_STATUS, ACADEMIC_PERFORMANCE
 )
 from sqlalchemy import text, func
 from config import Config

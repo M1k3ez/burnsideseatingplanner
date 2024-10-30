@@ -17,39 +17,47 @@ document.addEventListener('DOMContentLoaded', function() {
     const templateSelectContainer = document.querySelector('.template-select-container');
     
     if (classroomSelect) {
-        classroomSelect.addEventListener('change', async function() {
+        // Load all user templates when the page loads
+        loadUserTemplates();
+
+        classroomSelect.addEventListener('change', function() {
             const classroomId = this.value;
             if (!classroomId) {
                 templateSelectContainer.classList.add('d-none');
                 return;
             }
+            // Show template container whenever a classroom is selected
+            templateSelectContainer.classList.remove('d-none');
+        });
+    }
 
-            try {
-                const response = await fetch(`/teacher/api/classroom/${classroomId}/templates`);
-                if (!response.ok) throw new Error('Failed to fetch templates');
-                const data = await response.json();
+    // Function to load all templates for the current user
+    async function loadUserTemplates() {
+        try {
+            const response = await fetch('/teacher/api/templates');
+            if (!response.ok) throw new Error('Failed to fetch templates');
+            const data = await response.json();
 
-                const templateSelect = document.getElementById('templateSelect');
-                
-                if (data.templates && data.templates.length > 0) {
-                    templateSelect.innerHTML = '<option value="">No template</option>';
-                    data.templates.forEach(template => {
-                        const date = new Date(template.date_created).toLocaleDateString();
-                        templateSelect.innerHTML += `
-                            <option value="${template.template_id}">
-                                Template created on ${date}
-                            </option>
-                        `;
-                    });
-                    templateSelectContainer.classList.remove('d-none');
-                } else {
-                    templateSelectContainer.classList.add('d-none');
-                }
-            } catch (error) {
-                console.error('Error fetching templates:', error);
+            const templateSelect = document.getElementById('templateSelect');
+            
+            if (data.templates && data.templates.length > 0) {
+                templateSelect.innerHTML = '<option value="">No template</option>';
+                data.templates.forEach(template => {
+                    const date = new Date(template.date_created).toLocaleDateString();
+                    templateSelect.innerHTML += `
+                        <option value="${template.template_id}">
+                            ${template.template_name} (created on ${date})
+                        </option>
+                    `;
+                });
+                templateSelectContainer.classList.remove('d-none');
+            } else {
                 templateSelectContainer.classList.add('d-none');
             }
-        });
+        } catch (error) {
+            console.error('Error fetching templates:', error);
+            templateSelectContainer.classList.add('d-none');
+        }
     }
 
     const seatingPlanForm = document.getElementById('seatingPlanForm');
@@ -96,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Add event listener for plan name editing in edit_seating_plan.html
+    // Plan name editing functionality
     const planNameDisplay = document.querySelector('.plan-name-display');
     const planNameEdit = document.querySelector('.plan-name-edit');
     const planNameInput = document.querySelector('.plan-name-input');

@@ -38,11 +38,15 @@ def full_name_filter(student_id):
 def toolbox():
     user = User.query.filter_by(user_id=current_user.user_id).first()
     if user.role != USER_ROLE["Teacher"]:
-        flash("Access denied: You are not authorized to access the Teacher toolbox.", "error")
+        flash(
+            "Access denied: You are not authorized to access the Teacher toolbox.",
+            "error")
         return redirect(url_for('landing_page'))
     classes = Class.query.filter_by(user_id=user.user_id).all()
     classrooms = Classroom.query.all()
-    return render_template('teacher/toolbox.html', user=user, classes=classes, classrooms=classrooms)
+    return render_template(
+        'teacher/toolbox.html', user=user, classes=classes,
+        classrooms=classrooms)
 
 
 @teacher_bp.route('/students')
@@ -50,7 +54,9 @@ def toolbox():
 def view_students_page():
     """Render the students view page"""
     if current_user.role != USER_ROLE["Teacher"]:
-        flash("Access denied: You are not authorized to view students.", "error")
+        flash(
+            "Access denied: You are not authorized to view students.",
+            "error")
         return redirect(url_for('teacher.toolbox'))
     teacher = User.query.filter_by(user_id=current_user.user_id).first()
     # Get all classes for this teacher for the dropdown
@@ -67,7 +73,9 @@ def view_students_page():
 def import_csv():
     user = User.query.filter_by(user_id=current_user.user_id).first()
     if user.role != USER_ROLE["Teacher"]:
-        flash("Access denied: You are not authorized to access the Teacher toolbox.", "error")
+        flash(
+            "Access denied: You are not authorized to access the Teacher toolbox.",
+            "error")
         return redirect(url_for('landing_page'))
     if request.method == 'POST':
         logger.info("Import CSV request received")
@@ -82,9 +90,12 @@ def import_csv():
             logger.info("CSV import started")
             import_type = request.form.get('import_type', 'kamar')
             logger.info(f"Import type: {import_type}")
-            socketio.emit('csv_import_status', {'status': 'Import started...'}, room=current_user.get_id())
+            socketio.emit(
+                'csv_import_status', {
+                    'status': 'Import started...'}, room=current_user.get_id())
             try:
-                stream = StringIO(file.stream.read().decode("UTF8"), newline=None)
+                stream = StringIO(
+                    file.stream.read().decode("UTF8"), newline=None)
                 csv_reader = csv.reader(stream, delimiter=',')
                 if import_type == 'kamar':
                     # Skip the first row for KAMAR CSV
@@ -105,14 +116,16 @@ def import_csv():
                     row_count += 1
                     if row_count % 100 == 0:
                         db.session.commit()
-                        socketio.emit('csv_import_progress', {'status': f'{row_count} rows processed'}, to='/')
+                        socketio.emit('csv_import_progress', {
+                            'status': f'{row_count} rows processed'}, to='/')
                 logger.info(f"Total rows processed: {row_count}")
                 db.session.commit()
                 socketio.emit('csv_import_status', {'status': 'Import complete!'}, to='/')
                 flash('CSV imported successfully', "success")
             except Exception as e:
                 db.session.rollback()
-                logger.error(f'Error during CSV import: {str(e)}', exc_info=True)
+                logger.error(
+                    f'Error during CSV import: {str(e)}', exc_info=True)
                 socketio.emit('csv_import_status', {'status': f'Import failed: {str(e)}'}, to='/')
             return redirect(url_for('teacher.view_students_page'))
         else:
@@ -141,14 +154,21 @@ def export_csv():
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow(['Student ID', 'NSN', 'First Name', 'Last Name', 'Gender', 'Academic Performance', 
-                     'Language Proficiency', 'Level', 'Form Class', 'Date of Birth', 'Ethnicity L1', 'Ethnicity L2', 'Classes'])
+                     'Language Proficiency', 'Level', 'Form Class',
+                     'Date of Birth', 'Ethnicity L1', 'Ethnicity L2',
+                     'Classes'])
     for student in students:
-        classes = [f"{sc.class_.class_name} ({sc.class_.class_code})" for sc in student.student_classes if sc.class_.user_id == teacher.user_id]
+        classes = [
+            f"{sc.class_.class_name} ({sc.class_.class_code})" 
+            for sc in student.student_classes if sc.class_.user_id == teacher.user_id]
         classes_str = '; '.join(classes)
         writer.writerow([
-            student.student_id, student.nsn, student.first_name, student.last_name, student.gender,
-            student.get_academic_performance(), student.get_language_proficiency(), student.level,
-            student.form_class, student.date_of_birth, student.ethnicity_l1, student.ethnicity_l2,
+            student.student_id, student.nsn, student.first_name,
+            student.last_name, student.gender,
+            student.get_academic_performance(),
+            student.get_language_proficiency(), student.level,
+            student.form_class, student.date_of_birth,
+            student.ethnicity_l1, student.ethnicity_l2,
             classes_str
         ])
     output.seek(0)
@@ -165,25 +185,55 @@ def export_csv():
 def view_seating_plans():
     """Render the seating plans view page"""
     if current_user.role != USER_ROLE["Teacher"]:
-        flash("Access denied: You are not authorized to view seating plans.", "error")
+        flash("Access denied: You are not authorized to view seating plans.",
+              "error")
         return redirect(url_for('teacher.toolbox'))
     seating_plans = (SeatingPlan.query
         .join(Class)
         .filter(SeatingPlan.user_id == current_user.user_id)
         .options(
             joinedload(SeatingPlan.class_),
-            joinedload(SeatingPlan.classroom_seating_plans).joinedload(ClassroomSeatingPlan.classroom)
+            joinedload(SeatingPlan.classroom_seating_plans).joinedload(
+                ClassroomSeatingPlan.classroom)
         )
         .order_by(SeatingPlan.date_created.desc())
         .all())
-    classes = Class.query.filter_by(user_id=current_user.user_id).order_by(Class.class_name).all()
-    classrooms = Classroom.query.order_by(Classroom.block_name, Classroom.room_number).all()
+    classes = Class.query.filter_by(user_id=current_user.user_id).order_by(
+        Class.class_name).all()
+    classrooms = Classroom.query.order_by(Classroom.block_name,
+                                          Classroom.room_number).all()
     return render_template(
         'teacher/seating_plans.html',
         seating_plans=seating_plans,
         classes=classes,
         classrooms=classrooms
     )
+
+
+@teacher_bp.route('/api/templates')
+@login_required
+def get_user_templates():
+    """Get all templates for the current user"""
+    try:
+        templates = (SeatingTemplates.query
+            .filter_by(user_id=current_user.user_id)
+            .order_by(SeatingTemplates.date_created.desc())
+            .all())
+        return jsonify({
+            'success': True,
+            'templates': [{
+                'template_id': template.seating_template_id,
+                'template_name': template.seating_template_name,
+                'date_created': template.date_created.isoformat(),
+                'classroom_id': template.classroom_id
+            } for template in templates]
+        })
+    except Exception as e:
+        logger.error(f"Error fetching user templates: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to fetch templates'
+        }), 500
 
 
 @teacher_bp.route('/create_seating_plan', methods=['POST'])
@@ -208,8 +258,11 @@ def create_seating_plan():
             layout = data.get('layout', 'portrait')
             canvas_width = 794 if layout == 'portrait' else 1123
             canvas_height = 1123 if layout == 'portrait' else 794
-            default_chairs = generate_default_chairs(canvas_width, canvas_height, student_count)
-            new_plan.layout_data = json.dumps({'chairs': default_chairs, 'layoutPreference': layout})
+            default_chairs = generate_default_chairs(canvas_width,
+                                                     canvas_height,
+                                                     student_count)
+            new_plan.layout_data = json.dumps({'chairs': default_chairs,
+                                               'layoutPreference': layout})
         db.session.add(new_plan)
         db.session.flush()
         if template_id:
@@ -385,12 +438,14 @@ def add_student_note(student_id):
                 'note_id': note.note_id,
                 'details': note.details,
                 'date_created': note.date_created.isoformat(),
-                'teacher_name': f"{current_user.first_name} {current_user.last_name}"
+                'teacher_name': f"{current_user.first_name} {
+                    current_user.last_name}"
             }
         })
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
 
 @teacher_bp.route('/api/student/<int:student_id>/details')
 @login_required
@@ -604,7 +659,8 @@ def get_sac_options():
         sacs = Sac.query.all()
         return jsonify({
             'success': True,
-            'sac_options': [{'sac_id': sac.sac_id, 'sac_name': sac.sac_name} for sac in sacs]
+            'sac_options': [{'sac_id': sac.sac_id, 'sac_name': sac.sac_name}
+                            for sac in sacs]
         })
     except Exception as e:
         return jsonify({
@@ -636,8 +692,10 @@ def update_class_students(class_id):
                 student.first_name = data['first_name']
                 student.last_name = data['last_name']
                 student.gender = data['gender']
-                student.academic_performance = int(data['academic_performance'])
-                student.language_proficiency = int(data['language_proficiency'])
+                student.academic_performance = int(
+                    data['academic_performance'])
+                student.language_proficiency = int(
+                    data['language_proficiency'])
                 SACStudent.query.filter_by(
                     student_id=student.student_id,
                     class_id=class_id
@@ -650,7 +708,8 @@ def update_class_students(class_id):
                     )
                     db.session.add(new_sac)
         db.session.commit()
-        return jsonify({'success': True, 'message': 'Students updated successfully'})
+        return jsonify(
+            {'success': True, 'message': 'Students updated successfully'})
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error updating students: {str(e)}")
@@ -665,14 +724,16 @@ def update_class_students(class_id):
 def view_templates():
     """View templates for the current teacher"""
     if current_user.role != USER_ROLE["Teacher"]:
-        flash("Access denied: You are not authorized to view templates.", "error")
+        flash("Access denied: You are not authorized to view templates.",
+              "error")
         return redirect(url_for('teacher.toolbox'))
     templates = (SeatingTemplates.query
         .filter_by(user_id=current_user.user_id)
         .options(joinedload(SeatingTemplates.classroom))
         .order_by(SeatingTemplates.date_created.desc())
         .all())
-    classes = Class.query.filter_by(user_id=current_user.user_id).order_by(Class.class_name).all()
+    classes = Class.query.filter_by(user_id=current_user.user_id).order_by(
+        Class.class_name).all()
     classrooms = Classroom.query.all()
     return render_template(
         'teacher/view_templates.html',
@@ -687,7 +748,8 @@ def view_templates():
 def create_template(classroom_id):
     """Create a new template"""
     if current_user.role != USER_ROLE["Teacher"]:
-        flash("Access denied: You are not authorized to create templates.", "error")
+        flash("Access denied: You are not authorized to create templates.",
+              "error")
         return redirect(url_for('teacher.toolbox'))
     classroom = Classroom.query.get_or_404(classroom_id)
     template_name = request.args.get('name', 'Untitled Template')
@@ -755,23 +817,25 @@ def create_template_api():
     try:
         db.session.add(template)
         db.session.commit()
-        return jsonify({'success': True, 'template_id': template.seating_template_id})
+        return jsonify(
+            {'success': True, 'template_id': template.seating_template_id})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@teacher_bp.route('/api/templates/<int:template_id>', methods=['PUT', 'POST', 'DELETE'])
+@teacher_bp.route('/api/templates/<int:template_id>', methods=['PUT', 'POST',
+                                                               'DELETE'])
 @login_required
 def manage_template_api(template_id):
     template = SeatingTemplates.query.get_or_404(template_id)
     if str(template.user_id) != str(current_user.user_id):
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
-    if request.method in ['DELETE', 'POST']:  # Accept both DELETE and POST for deletion
+    if request.method in ['DELETE', 'POST']:
         try:
             db.session.delete(template)
             db.session.commit()
-            return redirect(url_for('teacher.view_templates'))  # Redirect after deletion
+            return redirect(url_for('teacher.view_templates'))
         except Exception as e:
             db.session.rollback()
             return jsonify({'success': False, 'error': str(e)}), 500
@@ -817,14 +881,16 @@ def generate_default_chairs(canvas_width, canvas_height, student_count):
     MARGIN = 20
     max_chairs_per_row = (canvas_width - MARGIN) // (CHAIR_WIDTH + MARGIN)
     num_rows = (student_count + max_chairs_per_row - 1) // max_chairs_per_row
-    total_width = min(max_chairs_per_row, student_count) * (CHAIR_WIDTH + MARGIN) - MARGIN
+    total_width = min(max_chairs_per_row, student_count) * (
+        CHAIR_WIDTH + MARGIN) - MARGIN
     total_height = num_rows * (CHAIR_HEIGHT + MARGIN) - MARGIN
     start_x = (canvas_width - total_width) // 2
     start_y = (canvas_height - total_height) // 2
     chairs = []
     chair_id = 1
     for row in range(num_rows):
-        chairs_in_row = min(max_chairs_per_row, student_count - row * max_chairs_per_row)
+        chairs_in_row = min(
+            max_chairs_per_row, student_count - row * max_chairs_per_row)
         for col in range(chairs_in_row):
             chairs.append({
                 'id': chair_id,
@@ -841,13 +907,16 @@ def process_kamar_csv_row(student_data, user):
     nsn = student_data.get('NSI')
     subject = student_data.get('Subject')
     if not student_id or not subject:
-        logger.error(f"Skipping row due to missing Number or Subject: {student_data}")
+        logger.error(f"Skipping row due to missing Number or Subject: {
+            student_data}")
         return
     logger.debug(f"Processing class: {subject}")
-    class_ = Class.query.filter_by(user_id=user.user_id, class_name=subject).first()
+    class_ = Class.query.filter_by(
+        user_id=user.user_id, class_name=subject).first()
     if not class_:
         logger.debug(f"Creating new class: {subject}")
-        class_ = Class(user_id=user.user_id, class_name=subject, class_code=subject)
+        class_ = Class(
+            user_id=user.user_id, class_name=subject, class_code=subject)
         db.session.add(class_)
     logger.debug(f"Processing student: {student_id}")
     student = Student.query.get(student_id)
@@ -865,7 +934,7 @@ def process_kamar_csv_row(student_data, user):
             ethnicity_l1=student_data.get('Ethnicity (L1)'),
             ethnicity_l2=student_data.get('Ethnicity (L2)'),
             academic_performance=0,
-            language_proficiency=0 
+            language_proficiency=0
         )
         db.session.add(student)
     else:
@@ -879,11 +948,15 @@ def process_kamar_csv_row(student_data, user):
         student.date_of_birth = student_data.get('Date of Birth')
         student.ethnicity_l1 = student_data.get('Ethnicity (L1)')
         student.ethnicity_l2 = student_data.get('Ethnicity (L2)')
-    logger.debug(f"Processing StudentClass relationship: {student_id} - {subject}")
-    student_class = StudentClass.query.filter_by(student_id=student_id, class_id=class_.class_id).first()
+    logger.debug(
+        f"Processing StudentClass relationship: {student_id} - {subject}")
+    student_class = StudentClass.query.filter_by(
+        student_id=student_id, class_id=class_.class_id).first()
     if not student_class:
-        logger.debug(f"Creating new StudentClass relationship: {student_id} - {subject}")
-        student_class = StudentClass(student_id=student_id, class_id=class_.class_id)
+        logger.debug(
+            f"Creating new StudentClass relationship: {student_id} - {subject}")
+        student_class = StudentClass(
+            student_id=student_id, class_id=class_.class_id)
         db.session.add(student_class)
 
 
@@ -892,9 +965,11 @@ def process_myispl_csv_row(student_data, user):
     student_id = student_data.get('Student ID')
     nsn = student_data.get('NSN')
     if not student_id or not nsn:
-        logger.error(f"Skipping row due to missing Student ID or NSN: {student_data}")
+        logger.error(
+            f"Skipping row due to missing Student ID or NSN: {student_data}")
         return
-    logger.debug(f"Processing student: {student_id}")
+    logger.debug(
+        f"Processing student: {student_id}")
     student = Student.query.get(student_id)
     if not student:
         logger.debug(f"Creating new student: {student_id}")
@@ -909,8 +984,10 @@ def process_myispl_csv_row(student_data, user):
             date_of_birth=student_data.get('Date of Birth'),
             ethnicity_l1=student_data.get('Ethnicity L1'),
             ethnicity_l2=student_data.get('Ethnicity L2'),
-            academic_performance=ACADEMIC_PERFORMANCE.get(student_data.get('Academic Performance'), 0),
-            language_proficiency=LANGUAGE_PROFICIENCY.get(student_data.get('Language Proficiency'), 0)
+            academic_performance=ACADEMIC_PERFORMANCE.get(student_data.get(
+                'Academic Performance'), 0),
+            language_proficiency=LANGUAGE_PROFICIENCY.get(student_data.get(
+                'Language Proficiency'), 0)
         )
         db.session.add(student)
     else:
@@ -924,8 +1001,10 @@ def process_myispl_csv_row(student_data, user):
         student.date_of_birth = student_data.get('Date of Birth')
         student.ethnicity_l1 = student_data.get('Ethnicity L1')
         student.ethnicity_l2 = student_data.get('Ethnicity L2')
-        student.academic_performance = ACADEMIC_PERFORMANCE.get(student_data.get('Academic Performance'), student.academic_performance)
-        student.language_proficiency = LANGUAGE_PROFICIENCY.get(student_data.get('Language Proficiency'), student.language_proficiency)
+        student.academic_performance = ACADEMIC_PERFORMANCE.get(
+            student_data.get('Academic Performance'), student.academic_performance)
+        student.language_proficiency = LANGUAGE_PROFICIENCY.get(
+            student_data.get('Language Proficiency'), student.language_proficiency)
     classes_str = student_data.get('Classes', '')
     logger.debug(f"Processing classes: {classes_str}")
     if classes_str:
@@ -937,15 +1016,23 @@ def process_myispl_csv_row(student_data, user):
             class_name, class_code = class_info.split(' (')
             class_code = class_code.rstrip(')')
             logger.debug(f"Processing class: {class_name} ({class_code})")
-            class_ = Class.query.filter_by(user_id=user.user_id, class_name=class_name, class_code=class_code).first()
+            class_ = Class.query.filter_by(
+                user_id=user.user_id, class_name=class_name,
+                class_code=class_code).first()
             if not class_:
-                logger.debug(f"Creating new class: {class_name} ({class_code})")
-                class_ = Class(user_id=user.user_id, class_name=class_name, class_code=class_code)
+                logger.debug(
+                    f"Creating new class: {class_name} ({class_code})")
+                class_ = Class(
+                    user_id=user.user_id, class_name=class_name,
+                    class_code=class_code)
                 db.session.add(class_)
-            student_class = StudentClass.query.filter_by(student_id=student.student_id, class_id=class_.class_id).first()
+            student_class = StudentClass.query.filter_by(
+                student_id=student.student_id, class_id=class_.class_id).first()
             if not student_class:
-                logger.debug(f"Creating new StudentClass relationship: {student_id} - {class_name}")
-                student_class = StudentClass(student_id=student.student_id, class_id=class_.class_id)
+                logger.debug(
+                    f"Creating new StudentClass relationship: {student_id} - {class_name}")
+                student_class = StudentClass(
+                    student_id=student.student_id, class_id=class_.class_id)
                 db.session.add(student_class)
 
 
@@ -960,7 +1047,7 @@ def get_student_shoutouts(student_id):
             .join(ShoutoutList)
             .filter(StudentShoutoutList.student_id == student_id)
             .filter(StudentShoutoutList.user_id == current_user.user_id)
-            .order_by(StudentShoutoutList.date_assigned.desc())  # Order by date descending
+            .order_by(StudentShoutoutList.date_assigned.desc())
             .all())
         return jsonify({
             'success': True,
