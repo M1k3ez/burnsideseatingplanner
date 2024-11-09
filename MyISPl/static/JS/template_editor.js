@@ -1,5 +1,5 @@
 $(document).ready(function() {
-    const gridSize = 30;
+    const gridSize = 10;
     const CHAIR_WIDTH = 120;
     const CHAIR_HEIGHT = 120;
     let chairs = [];
